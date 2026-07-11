@@ -1,0 +1,223 @@
+\section{Pattern and Association Rule Mining}
+\subsection{Association Rule Mining}
+
+\textbf{Association rule mining} aims to identify relationships between variables in large datasets. An association rule has the form \(X \rightarrow Y\), where \(X\) (antecedent) and \(Y\) (consequent) are itemsets. An itemset is a collection of one or more items, and a \(k\)-itemset contains exactly \(k\) items. Two key metrics evaluate association rules:
+
+\begin{itemize}
+    \item \textbf{Support}: The support of an itemset \(I\) is the fraction of transactions that contain \(I\):
+    \[
+    \text{support}(I) = \frac{\text{transactions containing }I}{\text{total transactions}}
+    \]
+    The \textbf{support count} \(\sigma(I)\) is the frequency of occurrence of itemset \(I\).
+    
+    \item \textbf{Confidence}: For an association rule \(X \rightarrow Y\), confidence measures how often \(Y\) appears in transactions that contain \(X\):
+    \[
+    \text{confidence}(X \rightarrow Y) = \frac{\text{support}(X \cup Y)}{\text{support}(X)}
+    \]
+\end{itemize}
+
+A \textbf{frequent itemset} is an itemset whose support exceeds a predefined threshold, known as the \textbf{minimum support} (minsup).
+
+\paragraph{Association Rule Mining Strategies}: The goal is to find rules whose support and confidence exceed the minsup and minconf thresholds, respectively. A brute-force approach computes support and confidence for every possible rule, then prunes those that miss the thresholds. A more efficient two-step approach is:
+\begin{itemize}
+    \item \textbf{Frequent Itemset Generation}: Identify itemsets with support \(\geq\) minsup.
+    \item \textbf{Rule Generation}: Create high-confidence rules from each frequent itemset.
+\end{itemize}
+
+Despite this decomposition, frequent itemset generation remains costly, prompting the development of efficient algorithms like Apriori and FP-Growth.
+
+\subsection{The Apriori Algorithm}
+
+The Apriori algorithm is a key method for mining frequent itemsets and generating association rules. It relies on the Apriori principle: if an itemset is frequent, then all of its subsets must also be frequent. This follows from the anti-monotone property of support: the support of an itemset never exceeds the support of its subsets.
+
+\begin{algorithm}
+\caption{Apriori Algorithm}
+\begin{algorithmic}[1]
+\State Let $k=1$
+\State Generate $F_1 =$ \{frequent 1-itemsets\}
+\Repeat
+    \State \textbf{Candidate Generation:} Generate $L_{k+1}$ from $F_k$
+    \State \textbf{Candidate Pruning:} Prune candidate itemsets in $L_{k+1}$ containing subsets of length $k$ that are infrequent
+    \State \textbf{Support Counting:} Count the support of each candidate in $L_{k+1}$ by scanning the database
+    \State \textbf{Candidate Elimination:} Eliminate candidates in $L_{k+1}$ that are infrequent, leaving only those that are frequent $\Rightarrow F_{k+1}$
+    \State $k = k + 1$
+\Until{$F_k$ is empty}
+\end{algorithmic}
+\end{algorithm}
+
+The Apriori algorithm iteratively identifies frequent itemsets of increasing size. At each iteration, it generates candidate itemsets of size $k+1$ from frequent itemsets of size $k$.
+
+\begin{itemize}
+    \item \textbf{Candidate Generation}: The method merges frequent $(k-1)$-itemsets to generate candidate itemsets:
+    \begin{itemize}
+        \item For $k=2$: merge any two distinct frequent $1$-itemsets (the empty $(k-2)$-prefix condition is trivially met), producing the candidate $2$-itemset $\{a,b\}$.
+        \item For $k > 2$: merge two frequent $(k-1)$-itemsets whose first $(k-2)$ items are identical.
+    \end{itemize}
+
+    \item \textbf{Candidate Pruning}: Prune candidates containing any subset that is not frequent.
+
+    \item \textbf{Support Counting and Candidate Elimination}: Count the support of each candidate itemset by scanning the database. Remove candidates with support below the minsup threshold, leaving only frequent itemsets.
+
+    \item \textbf{Rule Generation}: For a frequent itemset $L$, generate association rules from its non-empty subsets $f \subset L$. A rule $f \rightarrow L - f$ is valid if it meets the minimum confidence requirement. For a frequent itemset of size $k$, there are $2^k - 2$ candidate association rules.
+\end{itemize}
+
+\subsection{Pattern Evaluation and Interestingness Measures}
+
+Association rule algorithms often generate many rules, not all of which are useful. Interestingness measures can help prune or rank patterns. These measures are computed using a contingency table:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+ & $Y$ & $\neg Y$ & \\
+\hline
+$X$ & $f_{11}$ & $f_{10}$ & $f_{1+}$ \\
+\hline
+$\neg X$ & $f_{01}$ & $f_{00}$ & $f_{0+}$ \\
+\hline
+ & $f_{+1}$ & $f_{+0}$ & $N$ \\
+\hline
+\end{tabular}
+\caption{Contingency Table for Association Rules}
+\end{table}
+
+Where:
+\begin{itemize}
+    \item $f_{11}$: Support of $X$ and $Y$ (transactions containing both $X$ and $Y$)
+    \item $f_{10}$: Support of $X$ and $\neg Y$ (transactions containing $X$ but not $Y$)
+    \item $f_{01}$: Support of $\neg X$ and $Y$ (transactions containing $Y$ but not $X$)
+    \item $f_{00}$: Support of $\neg X$ and $\neg Y$ (transactions containing neither $X$ nor $Y$)
+    \item $N$: Total number of transactions
+\end{itemize}
+
+\textbf{Statistical relationship between items}: we compare the confidence with the support of the consequent:
+\begin{itemize}
+    \item If $\text{confidence}(X \rightarrow Y) > \text{support}(Y)$, $X$ and $Y$ are positively correlated.
+    \item If $\text{confidence}(X \rightarrow Y) = \text{support}(Y)$, $X$ and $Y$ are independent.
+    \item If $\text{confidence}(X \rightarrow Y) < \text{support}(Y)$, $X$ and $Y$ are negatively correlated.
+\end{itemize}
+
+The same relationship holds in terms of joint and marginal probabilities:
+\begin{itemize}
+    \item $P(X,Y) > P(X) \times P(Y)$ implies $X$ and $Y$ are positively correlated.
+    \item $P(X,Y) = P(X) \times P(Y)$ implies $X$ and $Y$ are independent.
+    \item $P(X,Y) < P(X) \times P(Y)$ implies $X$ and $Y$ are negatively correlated.
+\end{itemize}
+
+\begin{definition}
+\textbf{Lift} (for rules) and \textbf{Interest} (for itemsets) are measures that account for statistical dependence:
+\[
+\text{lift}(X \rightarrow Y) = \frac{\text{confidence}(X \rightarrow Y)}{\text{support}(Y)} = \frac{P(X,Y)}{P(X) \times P(Y)}
+\]
+A lift value greater than 1 indicates positive correlation, exactly 1 indicates independence, and less than 1 indicates negative correlation.
+\end{definition}
+
+\subsubsection{Handling Continuous and Categorical Attributes}
+Association rule mining traditionally targets binary attributes, but it extends to categorical and continuous attributes as well.
+
+\paragraph{Categorical Attributes} A common approach is to create a new ``item'' for each distinct attribute-value pair. When attributes have many values, those with low support might be aggregated.
+
+\paragraph{Continuous Attributes} Methods for handling continuous attributes include:
+\begin{itemize}
+    \item Discretization-based methods (convert continuous values into intervals),
+    \item Statistics-based methods (use statistical measures),
+    \item Non-discretization methods like minApriori.
+\end{itemize}
+
+\paragraph{Multi-level Association Rules} Rules can be mined at several levels of an item taxonomy:
+\begin{itemize}
+    \item rules at lower levels might lack support and be too specific,
+    \item higher-level rules give a more general view of the relationships.
+\end{itemize}
+Two approaches handle these rules:
+\begin{itemize}
+    \item augment each transaction with its higher-level items, then mine as usual,
+    \item generate frequent patterns starting at the highest level of the taxonomy.
+\end{itemize}
+The first increases data dimensionality, while the second increases I/O and could miss cross-level patterns.
+
+\subsubsection{Performance Issues with Apriori}
+
+The Apriori algorithm has performance limitations:
+\begin{itemize}
+    \item Candidate generation can lead to large sets, e.g., $10^4$ frequent 1-itemsets generating more than $10^7$ candidate 2-itemsets.
+    \item Discovering a pattern of size 100 requires generating $2^{100} \approx 10^{30}$ candidates.
+    \item Apriori requires $(n+1)$ database scans, where $n$ is the pattern length.
+\end{itemize}
+These challenges led to more efficient algorithms, such as FP-Growth.
+
+
+\subsection{FP-Growth Algorithm}
+
+\textbf{FP-Growth (Frequent Pattern Growth)} mines frequent patterns without generating candidates. It compresses the database into a compact structure, the Frequent-Pattern tree (FP-tree), and splits the mining task into smaller subtasks.
+
+\begin{algorithm}
+\caption{FP-tree Construction}
+\begin{algorithmic}[1]
+\Procedure{BuildFPTree}{$Dataset~D, minsup$}
+    \State Scan $D$ to find frequent 1-itemsets and their supports
+    \State Sort frequent items by support to create list $L$
+    \State Create the root of FP-tree labeled "null"
+    \For{each transaction $t$ in $D$}
+        \State Filter $t$ to keep only frequent items, sort by $L$
+        \State Insert the filtered transaction into the tree
+    \EndFor
+    \State \Return FP-tree
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+FP-tree construction guarantees \textbf{completeness} (preserves full transaction patterns) and \textbf{compactness} (removes infrequent items, orders by frequency).
+
+\begin{algorithm}
+\caption{FP-Growth Algorithm}
+\begin{algorithmic}[1]
+\Procedure{FPGrowth}{$FP\text{-}tree, \alpha$}
+    \For{each frequent item $a_i$ in the header table}
+        \State Construct conditional pattern base for item $a_i$
+        \State Build conditional FP-tree $FP\text{-}tree_{a_i}$
+        \If{$FP\text{-}tree_{a_i} \neq \emptyset$} \Comment{Recursively mine conditional FP-trees}
+            \If{$FP\text{-}tree_{a_i}$ has a single path} \Comment{enumerate all patterns}
+                \State Generate all combinations of items in the path with $\alpha$
+            \Else
+                \State Call \Call{FPGrowth}{$FP\text{-}tree_{a_i}, a_i \cup \alpha$}
+            \EndIf
+        \EndIf
+    \EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+The algorithm constructs a conditional pattern base by following node-links and accumulating prefix paths for each item.
+
+Two properties of the FP-tree make this efficient:
+\begin{itemize}
+    \item \textbf{Node-link property:} frequent patterns can be obtained by following node-links.
+    \item \textbf{Prefix path property:} only the prefix paths of a node need to be accumulated, each with the same frequency count.
+\end{itemize}
+
+For each pattern base, we accumulate the item counts and build a conditional FP-tree. When that conditional tree reduces to a single path, we generate the frequent patterns by enumerating all combinations of items along the path.
+
+\paragraph{Advantages of FP-Growth}
+
+FP-Growth outperforms Apriori for several reasons:
+\begin{itemize}
+    \item No candidate generation.
+    \item Compact FP-tree structure.
+    \item Fewer database scans.
+    \item Simpler operations (counting and tree building).
+\end{itemize}
+
+\subsubsection{Special Types of Frequent Patterns}
+
+In addition to regular frequent itemsets, several special types of frequent patterns may be of interest:
+
+\begin{definition}
+An itemset is \textbf{maximal frequent} if it is frequent and none of its immediate supersets are frequent. Maximal frequent itemsets form a boundary between frequent and infrequent itemsets in the itemset lattice.
+\end{definition}
+
+\begin{definition}
+An itemset $X$ is \textbf{closed} if no immediate superset of $X$ has the same support as $X$. $X$ is not closed if at least one of its immediate supersets has the same support count as $X$.
+\end{definition}
+
+Maximal frequent itemsets are a subset of closed frequent itemsets, which are, in turn, a subset of all frequent itemsets. Mining maximal or closed frequent itemsets can significantly reduce the number of patterns considered while preserving essential information.

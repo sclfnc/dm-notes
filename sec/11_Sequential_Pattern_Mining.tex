@@ -1,0 +1,145 @@
+\section{Sequential Pattern Mining}
+
+\textbf{Sequential pattern mining} discovers subsequences that appear frequently in a sequential dataset: it finds all subsequences whose number of occurrences is greater than or equal to a user-defined threshold ($minsup$). These frequent subsequences are the \textbf{sequential patterns}.
+
+Unlike frequent itemset mining, sequences also carry spatio-temporal information that records when certain transactions happen. This temporal dimension is what sets the problem apart from plain pattern mining.
+\begin{itemize}
+    \item \textbf{sequence} $s$: \textbf{ordered} list of elements $s = \langle e_1~ e_2~ \ldots~ e_n\rangle$;
+    \item Each \textbf{element} (or \textbf{transaction}) $e_j$ is an \textbf{ordered} list of one or more \textbf{events} (or \textbf{items}) $e_j = \{ i_1, i_2, \ldots , i_m \}$.
+\end{itemize}
+
+Each event can occur only once inside a single element, but may recur across separate elements of the same sequence. Events in the same element are listed in lexicographical order.
+\begin{itemize}
+    \item The \textbf{cardinality} (\textit{length}) of a sequence ($|s|$) is the number of its transactions;
+    \item The \textbf{size} of the sequence is the total number of its events. A sequence of size $k$ is also known as a \textbf{$k$-sequence}.
+\end{itemize}
+
+
+$s = \langle s_1 s_2 \ldots s_n\rangle$ is a \textbf{subsequence} of $t = \langle t_1 t_2 \dots t_m\rangle$ ($n\leq m$) (\textit{i.e. $s$ is contained in $t$}) if there exist integers $1 \leq i_1 < i_2 < \dots < i_n \leq m$ such that $s_1 \subseteq t_{i_1}, s_2 \subseteq t_{i_2}, \dots , s_n \subseteq t_{i_n}$. 
+\begin{table}[h]
+\centering
+\begin{tabular}{p{5cm}|p{2.5cm}|p{2.5cm}}
+\toprule
+\textbf{Data sequence} & \textbf{Subsequence} & \textbf{Contain?} \\
+\midrule
+$\langle \{2,4\} \{3,5,6\} \{8\} \rangle ~\langle \{2\} \{3,5\} \rangle$ & $\langle \{2\} \{3,5\} \rangle$ & Yes \\
+\hline
+$\langle \{1,2\} \{3,4\} \rangle~ \langle \{1\} \{2\} \rangle$ & $\langle \{1\} \{2\} \rangle$ & No \\
+\hline
+$\langle \{2,4\} \{2,4\} \{2,5\} \rangle ~ \langle \{2\} \{4\} \rangle$ & $\langle \{2\} \{4\} \rangle$ & Yes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Let \textit{D} be a dataset of sequences, called data-sequences. Each data-sequence is a list of elements ordered by increasing time. Each element carries a sequence-id, a timestamp, and the list of events it contains. For simplicity, we assume that elements occur at regular intervals and never overlap. For each pattern we can compute its \textbf{support} and \textbf{support count}, defined exactly as for itemsets in association analysis.
+
+\begin{itemize}
+    \item \textbf{support of a subsequence} $w$: the fraction of data-sequences in $D$ that contain $w$.
+    \item \textbf{support count of a sequence} $s$: the absolute number of data-sequences in $D$ that contain $s$.
+\end{itemize}    
+
+When computing support, only a single valid occurrence of a sequence in a data-sequence counts: even if a subsequence appears in $n$ different ways within the same data-sequence, its support count grows by 1. We can now define sequential pattern mining formally.
+\begin{definition}[Sequential Pattern Mining]
+    Given \textit{D} a dataset of data-sequences, and $minsup$ a user-defined minimum support threshold, the problem of mining sequential patterns
+    is to find all sequences whose support $\geq minsup$; each such sequence is a \textbf{sequential pattern}, also called frequent sequence. 
+\end{definition}
+
+Finding all frequent sequences in a dataset is computationally demanding. The simplest approach uses brute force: for each $k = 1, 2, 3, \ldots$, it generates all possible $k$-sequences and computes their support. Sequences with support above a given threshold ($minsup$) are marked as frequent. 
+
+However, the number of candidate sequences grows exponentially, even faster than in frequent itemset mining. A single event can appear multiple times within a sequence, and the order of elements matters, making enumeration particularly complex. With hundreds or thousands of items, the number of candidates quickly becomes unmanageable. Even pruning sequences by removing one item at a time and checking support still leads to a combinatorial explosion.
+
+To address this, efficient algorithms use the \textit{anti-monotonicity} property of support, along with the \textit{Apriori principle}, both known from itemset mining:
+
+\begin{definition}[Anti-monotone property]
+A measure $f$ is anti-monotone if, for any itemset $X \subset Y$, it holds that $f(Y) \leq f(X)$.
+\end{definition}
+
+\begin{definition}[Apriori principle]
+If a $k$-sequence is frequent, then all of its $(k-1)$-subsequences must also be frequent.
+\end{definition}
+
+
+\subsection{Generalized Sequential Patterns (GSP)}
+
+The \textbf{GSP} algorithm extracts sequential patterns efficiently by exploiting the anti-monotonicity of support, and it also handles time constraints. Its basic structure mirrors Apriori exactly.
+\begin{algorithm}
+\caption{Generalized Sequential Patterns (GSP)}
+\begin{algorithmic}[1]
+    \State $k \gets 1$
+    \State $F_1 \gets \{ i \in I : s(i) \geq minsup \}$ \Comment{Find all frequent 1-sequences}
+    
+    \Repeat
+        \State $k \gets k + 1$
+        \State $C_k \gets$ \texttt{candidate-gen}($F_{k-1}$) \Comment{Generate candidate $k$-sequences from $F_{k-1}$}
+        \State $C_k \gets$ \texttt{candidate-prune}($C_k$, $F_{k-1}$) \Comment{Remove candidates with infrequent subsequences}
+
+        \For{each transaction $t \in T$}
+            \State $C_t \gets$ \texttt{subsequences}($C_k$, $t$) \Comment{Find candidate subsequences contained in $t$}
+            \For{each $c \in C_t$}
+                \State $\sigma(c) \gets \sigma(c) + 1$ \Comment{Increment support count}
+            \EndFor
+        \EndFor
+
+        \State $F_k \gets \{ c \in C_k : \sigma(c) \geq minsup \}$ \Comment{Select frequent $k$-sequences}
+    \Until{$F_k = \emptyset$}
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Candidate Generation}
+
+This step creates new candidate $k$-sequences by joining frequent $(k{-}1)$-sequences identified in the previous iteration, guaranteeing completeness and avoiding duplicates. There are two main cases:
+
+\begin{itemize}
+    \item \textbf{For $k = 2$}, all frequent 1-sequences are joined pairwise, including self-pairs. For each pair of items $i_1$ and $i_2$, the generated candidates are: $\langle\{i_1\} \{i_2\}\rangle$, $\langle\{i_2\} \{i_1\}\rangle$, and $\langle\{i_1 i_2\}\rangle$ if $i_1 \neq i_2$; only $\langle\{i_1\} \{i_2\}\rangle$ if $i_1 = i_2$.
+
+    \item \textbf{For $k > 2$}, two frequent $(k{-}1)$-sequences $s_1$ and $s_2$ are joined only if the subsequence obtained by removing the first event from $s_1$ matches the one obtained by removing the last event from $s_2$. The resulting candidate is generated in one of two ways:
+    \begin{itemize}
+        \item If the last element of $s_2$ has a single item, append that element to $s_1$ as a new itemset.
+        \item If the last element of $s_2$ has multiple items, append its last item to the last itemset of $s_1$.
+    \end{itemize}
+\end{itemize}
+
+\textit{Note:} if possible, a sequence can also be joined with itself. 
+
+\subsubsection{Candidate Pruning}
+
+A candidate sequence can be discarded if any of its $(k{-}1)$-subsequences is not frequent. This follows from the anti-monotonicity of support: the support of a sequence cannot exceed that of its subsequences.
+
+Pruning removes one item at a time from the candidate and checks whether the resulting $(k{-}1)$-subsequence exists in the set of frequent sequences from the previous iteration. If at least one is missing, the candidate is eliminated, avoiding computing the support for sequences that are guaranteed to be infrequent.
+
+\subsubsection{Support Counting}
+
+After pruning, the algorithm scans the dataset. For each sequence in the data, it identifies which $k$-candidates are subsequences and increments their support count accordingly.
+
+At the end of the scan, candidates whose support meets or exceeds the \texttt{minsup} threshold are retained as frequent $k$-sequences. All others are discarded.
+
+
+\subsection{Time Constraints}
+\label{sec:tconstr}
+
+\textbf{Time constraints} control how support is computed by taking into account the time elapsed between elements of a sequence. There are three of them:
+\begin{itemize}
+    \item \textbf{maxspan} constraint specifies the maximum time passed between the first and last element of a sequence.
+    \item \textbf{maxgap} and \textbf{mingap} constraints specify the maximum time and minimum time passed between two consecutive elements of a sequence, respectively.
+\end{itemize}
+The $maxgap$ constraint violates the Apriori principle. A modification of this principle is used instead, which refers to \textbf{contiguous subsequences}: 
+
+\begin{definition}[Contiguous Subsequence]
+Given a sequence $s = \langle s_1s_2 \ldots s_n \rangle$, a sequence $t$ is a contiguous subsequence of $s$ if:
+
+	\begin{itemize}
+		\item[-] $t$ is obtained by dropping an event from either $s_1$ or $s_n$;
+		\item[-] $t$ is obtained by dropping one event from any element $s_i$ that contains more than one event;
+		\item[-] $t$ is a contiguous subsequence of $w$, and $w$ is a contiguous subsequence of $s$.
+	\end{itemize}
+\end{definition}
+The Apriori principle can then be modified in the following way: if a $k$-sequence is frequent, then all of its \textbf{contiguous} $k-1$-subsequences must also be frequent.
+
+\subsubsection{Generalized Sequential Patterns and Time Constraints}
+The first approach to mining sequential patterns with timing constraints is to initially ignore these constraints and post-process the results. However, this can lead to the generation of billions of patterns, most of which are irrelevant. A more efficient alternative is to modify the GSP algorithm to directly prune candidates that violate timing constraints.
+
+Introducing timing constraints such as \textit{mingap}, \textit{maxgap}, and \textit{maxspan} requires changes to both support counting and candidate pruning. Support counting must now consider the time gaps between consecutive elements for \textit{mingap} and \textit{maxgap}, as well as the total time span for \textit{maxspan}. In particular, a candidate is only supported by a data-sequence if there exists an occurrence where $mingap < t_{i,i+1} \leq maxgap$ and $\sum t_{i,i+1} \leq maxspan$, where $t_{i,i+1}$ is the time gap between consecutive elements.
+
+Candidate pruning becomes more complex due to the loss of the Apriori property under the \textit{maxgap} constraint. A candidate $c$ may be frequent even if some of its subsequences are not. For example, let $s = \langle \{1,2\}, \{2\}, \{3\}, \{4\} \rangle$ and $c = \langle \{1\}, \{2\}, \{4\} \rangle$, with $maxgap = 2$. The candidate $c$ is contained in $s$, but its subsequence $c' = \langle \{1\}, \{4\} \rangle$ is not, since the gap between $\{1\}$ and $\{4\}$ is 3.
+
+To address this, the pruning strategy must check only contiguous subsequences (those formed by removing events from elements containing multiple items), ensuring that no new gap is introduced between remaining elements. A candidate can be safely pruned if at least one of its contiguous subsequences is infrequent. While this method avoids discarding valid patterns, it also weakens the effectiveness of pruning overall.

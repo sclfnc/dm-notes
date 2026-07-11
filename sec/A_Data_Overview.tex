@@ -1,0 +1,129 @@
+\section{Data Manipulation and Understanding}
+An \textbf{object} (also called \textit{record}, \textit{sample}, or \textit{instance}) is described by a collection of \textit{attributes}. An \textbf{attribute} (also called \textit{variable}, \textit{dimension}, or \textit{feature}) is a property of an object.
+\begin{table}[H]
+\centering
+\footnotesize
+
+\begin{tabular}{|p{2.8cm}p{4.5cm}p{7.5cm}|}
+\hline
+\textbf{Measure} & \textbf{Definition} & \textbf{Notes} \\
+Mean & $\displaystyle \mu = \frac{1}{n} \sum_{i=1}^{n} x_i$ & Sensitive to outliers \\
+Median & Middle value in sorted data & Not affected by outliers \\
+Mode & Most frequent value & There can be more than one mode or none \\
+Variance & $\displaystyle \sigma^2 = \frac{1}{n-1} \sum_{i=1}^{n} (x_i - \mu)^2$ & Average squared deviation from the mean \\
+Standard Deviation & $\displaystyle \sigma = \sqrt{\sigma^2}$ & Square root of variance; in same units as data \\
+\hline
+\end{tabular}
+\caption*{Basic statistical measures: $x_i$ is the $i$-th data point and $n$ is the sample size.}
+\end{table}
+
+\subsection{Data Visualization}
+\textbf{Bar charts} visualize the frequency of categorical values, so we can compare how often each category appears.
+
+\textbf{Scatter plots} represent bivariate data as coordinate pairs, so clusters, outliers, and correlations between variables stand out.
+
+\textbf{Box plots} summarize a data distribution through quartiles. The $p$-th \textbf{percentile} is the value below which $p\%$ of the observations fall, so quartiles are the 25th, 50th, and 75th percentiles. The box spans from the first quartile ($Q_1$, 25th percentile) to the third quartile ($Q_3$, 75th percentile), with the median ($Q_2$, 50th percentile) marked inside. The \textit{interquartile range} (IQR) is defined as $Q_3 - Q_1$. Whiskers extend from the box to percentiles such as the 1st, 5th, or 10th on the lower end and the 90th, 95th, or 99th on the upper end.
+
+\textbf{Histograms} show frequency distributions of numerical data by grouping values into intervals (bins), with each bar's height counting the values that fall into its bin. Choosing the number of bins ($k$) shapes how much of the data's structure the plot reveals. Common binning strategies include:
+
+
+\begin{itemize}
+    \item \textbf{Sturges' rule}: best suited for normally distributed data and moderate-sized datasets:
+    \begin{equation}
+        k = \lceil \log_2(n) +1\rceil
+    \end{equation}
+    
+    \item \textbf{Natural binning}: sort values and divide the range into equal-width intervals:
+    \begin{equation}
+        \delta = \frac{x_{max}-x_{min}}{k}
+        \quad x_j \in \text{class}_i \Leftrightarrow
+        x_j \in [x_{min}+i\delta, x_{min}+(i+1)\delta]
+    \end{equation}
+    
+    \item \textbf{Equal frequency binning}: sort elements and create intervals with almost equal frequency:
+    \begin{equation}
+        f = \frac{N}{k}
+        \quad x_j \in \text{class}_i \Leftrightarrow
+        i \times f \leq j \leq (i+1) \times f
+    \end{equation}
+\end{itemize}
+\subsection{Data Preparation}
+\textbf{Data aggregation} combines several attributes into one to reduce dimensionality, adjust scale, and lower variability. Collapsing the detail this way can expose higher-level patterns that individual records hide.
+
+\textbf{Handling missing values} involves strategies such as removing incomplete records, imputing with statistical measures (mean, median, mode), estimating values using probability distributions, or predicting them with classification/regression models. The best approach depends on data quality, analysis goals, and the impact of missing values.
+
+\textbf{Discretization} transforms continuous attributes into ordinal categories, reducing infinite value ranges to a finite set of bins for easier analysis.
+
+\subsubsection{Data Normalization}
+\textbf{Normalization} adjusts attribute values to account for differences in frequency, mean, variance, or range. These methods remove unwanted patterns (e.g., seasonality) and let every attribute contribute equally to the analysis, regardless of its original scale.
+
+Common normalization methods include:
+
+\begin{itemize}
+    \item \textbf{Min-Max Normalization}: scales values to a fixed range, typically [0,1]:
+    \begin{equation}
+        v' = \frac{v - \min_A}{\max_A - \min_A}
+    \end{equation}
+    
+    \item \textbf{Z-Score Normalization}: centers data around zero with unit variance:
+    \begin{equation}
+        v' = \frac{v - \text{mean}_A}{\text{stDev}_A}
+    \end{equation}
+    
+    \item \textbf{Decimal Scaling}: divides values by powers of 10:
+    \begin{equation}
+        v' = \frac{v}{10^j} \quad \text{where $j$ makes $\max(|v'|) < 1$}
+    \end{equation}
+\end{itemize}
+
+\subsection{Data Similarity}
+\textbf{Dissimilarity} measures how different two data objects are: it typically starts at 0 and its upper limit varies. \textbf{Similarity} measures how alike two objects are: it usually ranges in $[0,1]$, with higher values indicating greater likeness.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|lcc|}
+        \hline
+        \textbf{Attribute Type} & \textbf{Dissimilarity ($d$)} & \textbf{Similarity ($s$)} \\
+        
+        Nominal & $\begin{cases} 0 & \text{if } p=q \\ 1 & \text{if } p\neq q \end{cases}$ & $\begin{cases} 1 & \text{if } p=q \\ 0 & \text{if } p\neq q \end{cases}$ \\
+        
+        Ordinal ($n$ values) & $\frac{|p-q|}{n-1}$ & $1-\frac{|p-q|}{n-1}$ \\
+        
+        Interval or Ratio & $d=|p-q|$ & $s=\frac{1}{1+d} \text{ or }1-\frac{d-\min_d}{\max_d-\min_d}$\\
+        \hline
+    \end{tabular}
+    \caption{basic similarity and dissimilarity measures}
+\end{table}
+\subsubsection{Distances}
+\textbf{Distances} quantify the dissimilarity between objects in a feature space. In the following, $n$ is the number of attributes, while $x_k$ and $y_k$ denote the $k^{th}$ attributes of objects $x$ and $y$.
+
+\begin{itemize}
+    \item \textbf{Euclidean Distance}: The straight-line distance between two points in Euclidean space:
+    \begin{equation}
+    d(x,y)=\sqrt{\sum_{k=1}^{n}(x_{k}-y_{k})^{2}}        
+    \end{equation}
+    
+    \item \textbf{Minkowski Distance}: A generalization of Euclidean and Manhattan distances:
+    \begin{equation}
+    d(x,y)=\left(\sum_{k=1}^{n}|x_{k}-y_{k}|^{r}\right)^{1/r}    \qquad r \text{ parameter}
+    \end{equation}
+\end{itemize}
+
+For binary data, with objects $p$ and $q$, we denote $M_{ij}$ as the number of attributes where $(p,q) = (i,j)$ with $i,j \in \{0,1\}$.
+
+\begin{itemize}
+    \item \textbf{Simple Matching Coefficient}: ratio of matching attributes to total attributes:
+    \begin{equation}
+                \text{SMC} = \frac{M_{11} + M_{00}}{M_{01} + M_{10} + M_{11} + M_{00}}
+    \end{equation}
+    
+    \item \textbf{Jaccard Similarity}: ratio of common presence attributes to attributes present in at least one object:
+    \begin{equation}
+        J = \frac{M_{11}}{M_{01} + M_{10} + M_{11}}        
+    \end{equation}
+    
+    \item \textbf{Cosine Similarity}: Measures the cosine of the angle between two non-zero vectors:
+    \begin{equation}
+    \cos(d_1, d_2) = \frac{d_1 \cdot d_2}{\|d_1\| \cdot\|d_2\|}    
+    \end{equation}
+\end{itemize}

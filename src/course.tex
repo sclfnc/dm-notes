@@ -1,0 +1,85 @@
+% ============================================================
+% COURSE-SPECIFIC — Data Mining.
+% Loaded by the shared main.tex after housestyle + common-preamble.
+% ============================================================
+
+% --- Title-block metadata (consumed by main.tex) ---
+\newcommand{\coursetitle}{Data Mining}
+\newcommand{\coursesubtitle}{DM1 (foundations) and DM2 (tabular data, time series)}
+\newcommand{\courseyear}{2024/2025}
+
+% ============================================================================
+% Course-specific
+% ============================================================================
+% Reconcile the legacy course color to the shared house accent: every existing
+% \color{base-col} now renders as housestyle's accent (rulegray comes from housestyle too).
+\colorlet{base-col}{accent}
+
+% List markers converged to the collection default (round bullet, plain numbers);
+% the former square/accent \labelitem and accent \labelenum redefs were
+% course-specific drift and have been removed.
+
+\renewcommand{\abstractname}{Disclaimer}
+
+% Course-specific R code listing environment (listings from common-preamble)
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codeframe}{RGB}{200,200,200}
+
+\lstnewenvironment{Rcode}{
+  \lstset{
+    language=R,
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{codebg},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=10pt,
+    frame=single,
+    rulecolor=\color{codeframe},
+    breaklines=true,
+    postbreak=\mbox{\textcolor{gray}{$\hookrightarrow$}\space},
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{orange},
+    showstringspaces=false,
+    tabsize=2
+  }
+}{}
+
+% --- Links (hyperref last, before \begin{document}) ---
+\usepackage{hyperref} % Allows links and makes references and the ToC clickable
+\hypersetup{
+    colorlinks=true,
+    linkcolor=base-col,
+    urlcolor=base-col,
+    citecolor=base-col,
+    pdftitle={Data Mining},
+    pdfauthor={Francesco Secoli}
+    }
+\urlstyle{same} % Defines settings for link and reference formatting
+
+% --- Document body: the section list (expanded by main.tex) ---
+\newcommand{\coursebody}{%
+  \part{Data Mining I}%
+  \input{sec/A_Data_Overview}%
+  \input{sec/B_Clustering}%
+  \input{sec/C_Classification}%
+  \input{sec/D_Linear_Regression}%
+  \input{sec/E_Pattern_Mining}%
+  \input{sec/F_Rule_based_models}%
+  \part{Data Mining II}%
+  \input{sec/00_Imbalanced_learning}%
+  \input{sec/01_Dimensionality_Reduction}%
+  \input{sec/02_Anomaly_Outlier_Detection}%
+  \input{sec/03_Gradient_Descent}%
+  \input{sec/04_Logistic_Regression}%
+  \input{sec/05_SVM}%
+  \input{sec/06_Neural_Network}%
+  \input{sec/07_Deep_Learning}%
+  \input{sec/08_Ensemble_methods}%
+  \input{sec/09_Explainability}%
+  \input{sec/10_Transactional_Clustering}%
+  \input{sec/11_Sequential_Pattern_Mining}%
+  \input{sec/12_Time_series}%
+  \input{sec/13_Similarity}%
+  \input{sec/14_TS_clustering_and_classification}%
+}

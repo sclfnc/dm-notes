@@ -1,0 +1,101 @@
+\section{Linear Regression}
+Linear regression models the relationship between \( Y \) (the dependent variable) and one or more independent variables \( X \). \textbf{Simple linear regression} uses one independent variable, \textbf{multiple linear regression} uses several, and \textbf{multivariate linear regression} handles multiple correlated dependent variables.
+
+The optimal predictor for \( Y \) given \( X \) is:
+\begin{equation*}
+f(X) = E(Y|X=x)
+\end{equation*}
+
+\begin{definition}
+Given \( Y \), dependent variable, \( X \), independent variable, \( m \) slope, and \( b \) intercept:
+\begin{equation}
+Y = mX + b \quad \textbf{linear model formulation}
+\end{equation}
+This relationship rarely holds exactly, because of errors or residuals. We aim to estimate \( m' \) and \( b' \) that best fit the data.
+\end{definition}
+
+\subsection{Least Squares Method (LSM)}
+The least squares method minimizes the sum of squared residuals (SSE), where a residual is the difference between an observed value and its predicted value:
+\begin{equation}
+SSE = \sum_{i=1}^{n} (Y_i - (mX_i + b))^2
+\end{equation}
+To minimize this, \( m \) and \( b \) are computed as:
+\begin{equation}
+m = \frac{n\sum(xy) - \sum x \sum y}{n\sum(x^2) - (\sum x)^2}
+\qquad
+b = \frac{\sum y - m \sum x}{n}
+\end{equation}
+
+where \( n \) is the number of observations.
+
+\begin{algorithm}
+\caption{Least Squares Method Calculation}
+\begin{algorithmic}[1]
+\State Calculate \(x^2\) and \(xy\) for each data point
+\State Sum columns (\(\sum x\), \(\sum y\), \(\sum x^2\), \(\sum xy\))
+\State Compute slope: \(m = \frac{n\sum(xy) - \sum x \sum y}{n\sum(x^2) - (\sum x)^2}\)
+\State Compute intercept: \(b = \frac{\sum y - m \sum x}{n}\)
+\State Test the equation \(y = mx + b\) with new values
+\end{algorithmic}
+\end{algorithm}
+
+The line these coefficients define is the best fit in the least squares sense: no other slope and intercept give a smaller SSE.
+
+\subsubsection{Alternative Fitting Methods}
+The least squares method is popular, but gradient-descent-based linear regression models benefit from regularization. Two methods stand out:
+
+\textbf{Ridge regression} (Tikhonov regularization) adds an L2-norm penalty to the least squares cost function, mitigating multicollinearity when predictor variables are highly correlated:
+\begin{equation}
+\text{Ridge: } \min_{\beta} \sum_{i=1}^{n} (y_i - \beta_0 - \sum_{j=1}^{p} \beta_j x_{ij})^2 + \lambda \sum_{j=1}^{p} \beta_j^2
+\end{equation}
+
+\textbf{Lasso} (Least Absolute Shrinkage and Selection Operator) adds an L1-norm penalty. It regularizes and selects variables at once: by driving some coefficients to zero it shrinks the model, which sharpens both prediction accuracy and interpretability:
+\begin{equation}
+\text{Lasso: } \min_{\beta} \sum_{i=1}^{n} (y_i - \beta_0 - \sum_{j=1}^{p} \beta_j x_{ij})^2 + \lambda \sum_{j=1}^{p} |\beta_j|
+\end{equation}
+
+Where \(\lambda\) is the regularization parameter.
+
+\subsection{Evaluating Regression Models}
+
+\begin{definition}
+\textbf{Coefficient of Determination} (\(R^2\)) measures the proportion of variance in the dependent variable that is predictable from the independent variables. It is calculated as:
+\begin{equation}
+R^2 = 1 - \frac{\sum_{i=1}^{n} (y_i - \hat{y}_i)^2}{\sum_{i=1}^{n} (y_i - \bar{y})^2}
+\end{equation}
+where \( \hat{y}_i \) is the predicted value and \( \bar{y} \) is the mean of observed values.
+\end{definition}
+
+\begin{definition}
+\textbf{Mean Squared Error (MSE)} is the average of the squared differences between predicted and actual values:
+\begin{equation}
+MSE = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
+\end{equation}
+\end{definition}
+
+\begin{definition}
+\textbf{Mean Absolute Error (MAE)} is the average of the absolute differences between predicted and actual values:
+\begin{equation}
+MAE = \frac{1}{n} \sum_{i=1}^{n} |y_i - \hat{y}_i|
+\end{equation}
+\end{definition}
+
+\subsection{Extensions of Regression}
+
+\paragraph{Nonlinear Regression}  
+Where linear regression fits a straight line, nonlinear regression captures more complex relationships through curves and other non-straight forms.
+
+\paragraph{k-NN for Regression}  
+In k-Nearest Neighbors (k-NN) regression, the prediction is based on averaging the target values of the \(k\) nearest neighbors to the test point. The steps are:
+
+\begin{algorithm}
+\caption{k-NN for Regression}
+\begin{algorithmic}[1]
+\State Compute distances from the training set to the test record
+\State Identify the \(k\) nearest neighbors
+\State Predict by averaging the target values of the nearest neighbors
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Decision Trees for Regression}  
+In regression trees, the prediction at each leaf node is the average of the target variable values for the instances that reach it. The tree is built by making splits that minimize an error criterion like MSE or MAE, rather than maximizing class purity as in classification trees.

@@ -1,0 +1,108 @@
+\section{Imbalanced Learning}
+Most classification tasks assume that the classes are equally represented in the training set, but it is very common to have a majority (\textit{negative}) class and a minority (\textit{positive}) class. To handle this we can \textbf{balance the training set} (\textit{undersampling} or \textit{oversampling}); \textbf{balance at the algorithm level} (adjusting the weight associated to each class, using a decision threshold, or choosing specific algorithms); or switch to \textbf{anomaly detection}.
+
+\subsection{Balancing the Training Set: Undersampling}
+\subsubsection{Random Undersampling}
+\textbf{Random undersampling} (\textit{with or without replacement}) picks elements at random from the majority class until we reach a set of the desired size, comparable to the minority class.
+
+\subsubsection{Tomek Link}
+\textbf{Tomek Links} selects pairs of examples $(a,b)$ that are each other's nearest neighbor and belong to different classes, then removes the element of the \textit{majority} class. This way, majority-class samples that sit very close to minority-class ones are removed.
+
+\subsubsection{Edited Nearest Neighbour (ENN)}
+For each example, \textbf{ENN} finds its $k$-nearest neighbors and checks the class predicted by that neighborhood. If the prediction does not match the class of the example, the example is removed along with its neighborhood: examples too close to instances of the opposite class are dropped.
+
+\subsubsection{Condensed Nearest Neighbor (CNN)}
+
+\textbf{CNN} aims to speed up $k-NN$ classification by removing redundant samples, especially majority-class points, and retaining only a subset sufficient to classify the rest of the dataset correctly.
+
+The goal is to build a minimal reference set, called \texttt{Store}, that preserves the classification accuracy of the full dataset. A point is added to \texttt{Store} only if the current contents of \texttt{Store} cannot classify it correctly.
+
+At the end of the process, \texttt{Store} is used for classification instead of the full dataset.
+
+The first sample is always placed in \texttt{Store}. Each subsequent sample is tested using the current contents of \texttt{Store}. If it is classified correctly, it is discarded or placed temporarily in a set called \texttt{GRABBAG}; otherwise, it is added to \texttt{Store}. This continues iteratively until one of two conditions is met: either all points in \texttt{GRABBAG} are eventually added to \texttt{Store}, or a full pass through \texttt{GRABBAG} results in no new additions, indicating convergence.
+
+CNN reduces the size of the training set, which speeds up classification at test time. However, it is order-sensitive, as the final subset depends on the order of the samples. It may also require multiple passes through the data to converge, and it does not guarantee the smallest possible subset.
+
+\subsubsection{Centroid-Based Clustering}
+\textbf{Centroid-based clustering} can be applied to the majority-class data, reducing the dataset by keeping only the centroids (such as those from K-Means) instead of all data points. Here, choosing $K$ is straightforward: it simply equals the number of elements we wish to retain.
+
+\subsection{Balancing the Training Set: Oversampling}
+\subsubsection{Random Oversampling}
+\textbf{Random oversampling} (\textit{with or without replacement}) grows the minority class until it reaches the desired size, comparable to the majority class.
+
+\subsubsection{Synthetic Minority Oversampling Technique (SMOTE)}
+\textbf{SMOTE} adds data points via \textit{interpolation}. It operates in the \textit{feature space} rather than the data space, introducing synthetic examples along the segments that connect each sample with any or all of its minority-class $k$ nearest neighbors (\textit{default: $k=5$}).
+
+It takes the difference between the current sample and one of its neighbors, multiplies it by a random number between 0 and 1, and adds the result to the values of the current sample. The final record is a point lying somewhere along the segment that connects the sample and the neighbor.
+
+\textbf{Issue:} SMOTE draws lines between points. Near the decision boundary, these lines can cross into regions of the other class and complicate the situation through overlapping.
+
+\subsubsection{Adaptive Synthetic Sampling (ADASYN)}
+
+\textbf{ADASYN} generates synthetic data points for the minority class. Unlike SMOTE, it adaptively focuses on harder-to-learn samples: those surrounded by more majority-class neighbors.
+
+\begin{enumerate}
+  \item Compute the ratio $d = \frac{\text{min}}{\text{maj}}$ between minority and majority classes.
+  \item Determine the total number of synthetic samples to generate: $G = (\text{maj} - \text{min}) \cdot \beta$, where $\beta$ is a balancing factor.
+  \item For each minority sample, find its $k$ nearest neighbors and compute $r_i = \frac{\text{maj}_i}{k}$. Normalize $r_i$ by the sum over all $r_i$.
+  \item Calculate the number of synthetic samples for each minority instance: $G_i = G \cdot r_i$.
+  \item Generate $G_i$ synthetic samples by interpolating between the sample $x_i$ and one of its minority neighbors $y_i$:
+  \begin{equation}
+  s_i = x_i + \lambda \cdot (y_i - x_i), \quad \lambda \sim \mathcal{U}(0, 1)      
+  \end{equation}
+\end{enumerate}
+ADASYN emphasizes generating samples in regions that are harder to learn, making classifiers more sensitive to complex class boundaries. It may, however, introduce noise when minority samples lie near outliers or ambiguous regions.
+
+
+
+\subsection{Balancing at the Algorithm Level}
+To handle unbalanced data, we can modify the training algorithm so that it accounts for the disparity between the classes.
+
+\subsubsection{Class Weights}
+The performance of a classifier can be summarized with a confusion matrix. From it we build a corresponding \textbf{cost matrix}, associating a different cost (\textit{weight}) with each \textit{event}. The training algorithm then aims to minimize the total cost given by:
+\begin{equation}
+    \sum_X C_X * \textit{freq}_X = \sum_{i\in row}\sum_{j\in col} costMatrix_{i,j} \times confusionMatrix_{i,j}
+\end{equation}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.49\textwidth}
+\centering
+    \begin{tabular}{|c||c|c|}
+         \hline
+         & pred. + & pred. - \\
+        \hline
+        \hline
+        actual + & $f_{++}$ & $f_{+-}$\\
+        \hline
+        actual - & $f_{-+}$ & $f_{--}$\\
+        \hline
+    \end{tabular}
+    \caption{confusion matrix}
+\end{minipage}
+\hfill
+\begin{minipage}{0.49\textwidth}
+\centering
+    \begin{tabular}{|c||c|c|}
+         \hline
+        $C(i|j)$ & pred. + & pred. - \\
+        \hline
+        \hline
+        actual + & $C(+|+)$ & $C(-|+)$\\
+        \hline
+        actual - & $C(+|-)$ & $C(-|-)$\\
+        \hline
+    \end{tabular}
+    \caption{cost matrix}
+\end{minipage}
+\end{figure}
+
+\subsubsection{Adjusting the Decision Threshold}
+Many classifiers compute the probability that an instance $x$ belongs to each class and then assign it to the most likely one. \textbf{Meta-cost sensitive classifiers} instead calculate the risk of assigning $x$ to class $i$ as:
+\begin{equation}
+    R(i|x) = \sum_j P(j|x)C(i|j) \qquad \text{(recall Gini)}
+\end{equation}
+
+In binary classification, a common rule is to assign the instance to a class if its score $p > 50\%$; otherwise, to the other. For example, in decision trees, $p$ is the fraction of positive cases in a leaf, i.e. the number of positive cases divided by the total number of cases in the leaf (positives / (positives + negatives)).
+
+More generally, a threshold $\text{THR} \in [0,100]$ can be used: if $p > \text{THR}$, the instance is assigned to one class; otherwise, to the other. Varying $\text{THR}$ produces different predictions, which in turn affect the confusion matrix and all derived metrics.

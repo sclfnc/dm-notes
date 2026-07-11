@@ -1,0 +1,619 @@
+\section{Classification}
+Classification is a \textit{supervised} learning method that predicts a target attribute from input features. Unlike clustering and association rule mining, which are unsupervised and lack a target variable, classification learns from labeled data. When the target is categorical, the task is classification; when it is numerical, the task becomes regression.
+
+The goal is to learn a function $f: X \rightarrow Y$ that maps input attributes $x \in X$ to class labels $y \in Y$. The model is trained on labeled examples $(x, y)$, where $x$ are the predictors and $y$ the response. Performance is evaluated by splitting the data into training and test sets: training builds the model, while testing measures its accuracy.
+
+
+\begin{algorithm}
+\caption{Classification Process}
+\label{alg:classification}
+\begin{algorithmic}[1]
+\Require Dataset $(X, Y)$ ($X$ feature vectors, $Y$ corresponding class labels)
+\Ensure Trained classification model $f$ and performance metrics
+
+\State Split dataset into $(X_{\text{train}}, Y_{\text{train}})$ and $(X_{\text{test}}, Y_{\text{test}})$ \Comment{Training-phase}
+\State Select an appropriate classification algorithm
+\State Train the model $f$ using $(X_{\text{train}}, Y_{\text{train}})$
+
+\State Apply model to test data: $Y_{\text{pred}} = f(X_{\text{test}})$\Comment{Testing-phase}
+\State Compare predictions $Y_{\text{pred}}$ with actual labels $Y_{\text{test}}$
+\State Calculate performance metrics (accuracy, precision, recall, F1-score, etc.)
+\If{performance is unsatisfactory}
+    \State Adjust model parameters or try alternative algorithms
+    \State Retrain and reevaluate model
+\EndIf
+
+\State Apply the trained model to new data $X_{\text{new}}$ with unknown labels \Comment{Application-phase}
+\State Generate predictions $Y_{\text{new}} = f(X_{\text{new}})$
+
+\State \Return Trained model $f$ and performance metrics
+\end{algorithmic}
+\end{algorithm}
+
+
+\subsection{K-Nearest Neighbors (K-NN)}
+\textbf{K-NN} is an instance-based classifier that assigns labels based on the majority class among the $k$ nearest neighbors in the training set. It operates under the assumption that similar instances share the same class. As a \textit{lazy learner}, K-NN defers computation until prediction time, making it slower than \textit{eager learners}, which build models during training.
+
+K-NN is sensitive to noise, particularly with small $k$, and its performance depends heavily on the distance metric and data preprocessing. Choosing $k$ is critical: a small $k$ may overfit noise, while a large $k$ can blur class boundaries. A common heuristic is $k = \sqrt{N}$, where $N$ is the number of training samples.
+
+
+\subsubsection{Distance Metrics and Scaling Issues}
+High-dimensional data often suffers from the \textit{curse of dimensionality}, where standard distance metrics like Euclidean distance become less meaningful. To mitigate this, we can normalize feature vectors to unit length, and we should scale attributes so that those with larger ranges (e.g., income) do not dominate the distance computation over others (e.g., height).
+
+For \textbf{categorical} or \textbf{nominal} attributes, standard distance metrics are inadequate. Specialized approaches like the \textbf{Parallel Exemplar-Based Learning System (PEBLS)} address this by using the \textit{Modified Value Difference Metric (MVDM)} for distance calculation:
+
+\begin{equation}
+    d(V_1, V_2) = \sum_i \left| \frac{n_{1i}}{n_1} - \frac{n_{2i}}{n_2} \right|
+\end{equation}
+
+Here, \(n_1\) and \(n_2\) are the number of records with nominal values \(V_1\) and \(V_2\), respectively, while \(n_{1i}\) and \(n_{2i}\) represent the counts of class \(i\) associated with those values. This approach captures how differently two values are distributed across classes.
+
+The distance between two \textbf{records} is computed as the weighted sum of the distances between their corresponding attribute values:
+
+\begin{equation}
+    \delta(X, Y) = w_X w_Y \sum_{i=1}^d d(X_i, Y_i)
+\end{equation}
+
+Each record \(X\) is assigned a weight \(w_X = \frac{N_{X_{predict}}}{N_{X_{predict}^{correct}}}\), reflecting its \textit{reliability}, where \(N_{X_{predict}}\) is the number of times \(X\) is used for prediction, and \(N_{X_{predict}^{correct}}\) is the number of times it leads to a correct prediction.
+
+A reliability weight \(w_X \approx 1\) marks a record with consistent accuracy, while \(w_X > 1\) flags one that is less dependable for prediction.
+
+
+
+\subsubsection{K-NN for Regression}
+
+The K-NN approach extends naturally to \textbf{regression} tasks. The procedure mirrors that of classification: given a set of training records and a test instance, the algorithm computes the distances between the test instance and all training records to identify the \(k\) nearest neighbors. However, instead of predicting a class label, K-NN regression estimates the target value of the test instance by averaging the target values of its \(k\) nearest neighbors.
+
+
+
+\begin{algorithm}
+\caption{K-Nearest Neighbors Algorithm}
+\begin{algorithmic}[1]
+\Require Training set $D$, test instance $x$, number of neighbors $k$
+\Ensure Predicted class (or value) for $x$
+\For{each instance $(x_i, y_i)$ in $D$}
+    \State Compute distance $d(x_i, x)$ between $x_i$ and $x$
+\EndFor
+\State Let $N$ be the set of $k$ instances in $D$ closest to $x$
+\If{classification task}
+    \State Return the majority class among instances in $N$
+\ElsIf{regression task}
+    \State Return the average of the target values in $N$
+\EndIf
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Na\"ive Bayes Classifiers}
+Let $P$ be a probability function assigning values in $[0, 1]$. For an event $X = x$, $P(X = x)$ denotes the probability that this event occurs.
+
+\begin{itemize}
+    \item \textbf{Joint probability} $P(X = x, Y = y)$: the probability that $X = x$ and $Y = y$ occur simultaneously.
+    \item \textbf{Conditional probability} $P(Y = y \mid X = x)$: the probability that $Y = y$ occurs given that $X = x$ has occurred.
+\end{itemize}
+
+These probabilities are related by:
+\begin{equation}
+P(X, Y) = P(Y \mid X) \cdot P(X) = P(X \mid Y) \cdot P(Y)
+\end{equation}
+\begin{theorem}{Bayes}
+
+\begin{equation}
+P(Y \mid X) = \frac{P(X \mid Y) \cdot P(Y)}{P(X)}
+\end{equation}
+    
+\end{theorem}
+
+\begin{theorem}[Law of Total Probability]
+The total probability of an event can be computed by summing over joint probabilities with all values of another variable:
+\begin{equation}
+P(X = x) = P(X = x, Y = 0) + P(X = x, Y = 1)
+\end{equation}
+\end{theorem}
+\subsubsection{Bayes' Theorem in Classification}
+
+\begin{equation}
+\underbrace{P(Y \mid X)}_{\text{Posterior}} = \frac{\overbrace{P(X \mid Y)}^{\text{Likelihood}} \cdot \overbrace{P(Y)}^{\text{Prior}}}{\underbrace{P(X)}_{\text{Evidence}}}
+\end{equation}
+
+\textbf{Goal:} Learn $P(Y \mid X)$ for all combinations of $X$ and $Y$. For a new instance $X'$, predict the class $Y'$ that maximizes the posterior:
+\[
+Y' = \arg\max_Y P(Y \mid X')
+\]
+
+Since $P(X')$ is constant across classes, this reduces to maximizing:
+\[
+P(Y) \cdot P(X \mid Y)
+\]
+
+Estimating these probabilities from training data is the core task of Bayesian classification.
+
+\subsubsection{The Classifier}
+
+The \textbf{Na\"ive Bayes classifier} simplifies the estimation of $P(X \mid Y)$ by assuming that features are conditionally independent given the class label:
+\begin{equation}
+P(X \mid Y) = \prod_{i=1}^{n} P(X_i \mid Y) \quad \text{($X_i$ is the $i$-th feature)}
+\end{equation}
+
+For example, with two features:
+\begin{equation}
+P(X_1, X_2 \mid Y) = P(X_1 \mid Y) \cdot P(X_2 \mid Y)
+\end{equation}
+
+\textbf{Training:} Estimate the following from data:
+\begin{itemize}
+    \item \textit{Prior:}
+    \begin{equation}
+    P(Y = y) = \frac{N_y}{N}
+    \end{equation}
+    where $N_y$ is the count of class $y$ and $N$ is the total number of instances.
+
+    \item \textit{Conditional (Categorical Features):}
+    \begin{equation}
+    P(X_i = x \mid Y = y) = \frac{N_{xy}}{N_y}
+    \end{equation}
+    where $N_{xy}$ is the number of times feature $X_i = x$ occurs in class $y$.
+\end{itemize}
+
+\textbf{Handling Continuous Features:}  
+Several strategies exist:
+\begin{itemize}
+    \item \textbf{Discretization:} Divide the range into bins (may violate independence).
+    \item \textbf{Two-way Split:} Use binary thresholds (e.g., $X < v$ or $X \geq v$).
+    \item \textbf{Probability Density Estimation:} Assume a distribution (e.g., Gaussian):
+    \begin{equation}
+    P(X_i = x \mid Y = y) = \frac{1}{\sqrt{2\pi\sigma^2_y}} e^{-\frac{(x - \mu_y)^2}{2\sigma^2_y}} \quad \text{with } \mu_y, \sigma^2_y \text{ from training data}
+    \end{equation}
+\end{itemize}
+
+\textbf{Smoothing Zero Probabilities:}  
+When $P(X_i = x \mid Y = y) = 0$ due to unseen combinations, use the \textbf{M-estimate}:
+\begin{equation}
+P(X_i = x \mid Y = y) = \frac{N_{xy} + m \cdot p}{N_y + m}
+\end{equation}
+Here, $p$ is a prior estimate (e.g., $1/k$ for $k$ categories), and $m$ controls the weight of $p$.
+
+This avoids zeroing out the entire product and improves robustness on sparse data.
+
+\subsubsection{Advantages and Limitations}
+
+Na\"ive Bayes classifiers offer several practical benefits:
+
+\begin{itemize}
+    \item \textbf{Robust to noise:} Isolated noisy data points have little effect on overall probability estimates.
+    \item \textbf{Handles missing values:} Missing features can be ignored during conditional probability computation without retraining.
+    \item \textbf{Insensitive to irrelevant features:} Irrelevant attributes typically distribute uniformly across classes and thus exert minimal influence on classification.
+    \item \textbf{Efficient and scalable:} Training is fast, requiring only a single pass to estimate probabilities, making it suitable for large datasets.
+\end{itemize}
+
+\textbf{Limitation:}  
+The primary drawback is the \textit{strong independence assumption}: Na\"ive Bayes assumes that features are conditionally independent given the class label. In real-world scenarios where features are correlated or interact, this assumption is often violated, which can lead to reduced classification accuracy.
+
+\begin{algorithm}
+\caption{Na\"ive Bayes Classifier Training and Prediction}
+\begin{algorithmic}[1]
+\Require Training dataset $D$ with features $X = \{X_1, X_2, \ldots, X_n\}$ and class labels $Y$
+\Ensure A trained Na\"ive Bayes model
+
+\For{each class label $y$ in $Y$} \Comment{Training phase}
+    \State Compute prior probability $P(Y = y)$\Comment{fraction of instances in $D$ with label $y$}
+    \For{each feature $X_i$ in $X$}
+        \If{$X_i$ is categorical}
+            \For{each possible value $x$ of $X_i$}
+                \State Calculate $P(X_i = x | Y = y)$ \Comment{instances of class $y$ that have $X_i = x$}
+                \State Apply M-estimate if needed to avoid zero probabilities
+            \EndFor
+        \ElsIf{$X_i$ is continuous}
+            \State Calculate ($\mu_{iy},\sigma^2_{iy}$) of $X_i$ for instances with class $y$
+        \EndIf
+    \EndFor
+\EndFor
+
+\For{each class label $y$ in $Y$} \Comment{Prediction phase for $X' = \{x'_1, \ldots, x'_n\}$} 
+    \State Initialize $score(y) = P(Y = y)$
+    \For{each feature $X_i$ in $X$}
+        \If{$X_i$ is categorical}
+            \State $score(y) = score(y) \times P(X_i = x'_i | Y = y)$
+        \ElsIf{$X_i$ is continuous}
+            \State $score(y) = score(y) \times \frac{1}{\sqrt{2\pi\sigma^2_{iy}}} \exp\left(-\frac{(x'_i-\mu_{iy})^2}{2\sigma^2_{iy}}\right)$
+        \EndIf
+    \EndFor
+\EndFor
+\State Return the class $y$ that maximizes $score(y)$
+\end{algorithmic}
+\end{algorithm}
+
+
+\subsection{Model Evaluation}
+
+When evaluating classification models, we focus on their \textbf{predictive performance} rather than operational aspects such as classification speed, training time, or scalability. The starting point is the \textbf{confusion matrix}, which summarizes the relationship between actual and predicted class labels.
+
+In binary classification, the confusion matrix contains four possible outcomes:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\multirow{2}{*}{\textbf{Actual Class}} & \multicolumn{2}{c|}{\textbf{Predicted Class}} \\
+\cline{2-3}
+& Yes & No \\
+\hline
+Yes & $a$ (TP: True Positive) & $b$ (FN: False Negative) \\
+\hline
+No & $c$ (FP: False Positive) & $d$ (TN: True Negative) \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{definition}[\textbf{Performance Metrics}]
+Given the confusion matrix, we define the following evaluation metrics:
+
+\begin{align}
+\text{Accuracy} &= \frac{TP + TN}{TP + TN + FP + FN} \\
+\text{Precision} &= \frac{TP}{TP + FP} \\
+\text{Recall (Sensitivity)} &= \frac{TP}{TP + FN} \\
+\text{F-measure (F1 Score)} &= \frac{2 \times \text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}
+\end{align}
+
+\end{definition}
+
+\textbf{Limitations of Accuracy:} Accuracy can be misleading in imbalanced datasets. For instance, in a binary task with 9,990 class-0 instances and only 10 class-1 instances, a model that always predicts class 0 would achieve 99.9\% accuracy while completely failing to detect class 1.
+
+\textbf{Metric Bias:}
+\begin{itemize}
+    \item Precision focuses on $C(\text{Yes}|\text{Yes})$ and $C(\text{Yes}|\text{No})$.
+    \item Recall focuses on $C(\text{Yes}|\text{Yes})$ and $C(\text{No}|\text{Yes})$.
+    \item F-measure balances precision and recall, but ignores $C(\text{No}|\text{No})$.
+\end{itemize}
+
+\paragraph*{Cost-Sensitive Evaluation}
+
+When the consequences of different classification errors vary, we use a \textbf{cost matrix} to account for these differences. Let $C(i|j)$ represent the cost of predicting class $i$ when the real class is $j$:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\multirow{2}{*}{\textbf{Actual Class}} & \multicolumn{2}{c|}{\textbf{Predicted Class}} \\
+\cline{2-3}
+& Yes & No \\
+\hline
+Yes & $C(\text{Yes}|\text{Yes})$ & $C(\text{No}|\text{Yes})$ \\
+\hline
+No & $C(\text{Yes}|\text{No})$ & $C(\text{No}|\text{No})$ \\
+\hline
+\end{tabular}
+\end{table}
+
+The \textbf{total classification cost} is computed by multiplying each confusion matrix cell by its corresponding cost and summing the results.
+
+Even if two models achieve the same accuracy, differing cost matrices and confusion structures may lead to different total costs, emphasizing the limitations of relying solely on accuracy.
+The relationship between accuracy and cost can be expressed as:
+
+\begin{equation}
+\text{Cost} = N \left[q - (q - p) \times \text{Accuracy} \right]
+\end{equation}
+\begin{itemize}
+    \item $N$ = total number of instances,
+    \item $p$ = cost for correct predictions (i.e., $C(\text{Yes}|\text{Yes})$ and $C(\text{No}|\text{No})$),
+    \item $q$ = cost for incorrect predictions (i.e., $C(\text{Yes}|\text{No})$ and $C(\text{No}|\text{Yes})$).
+\end{itemize}
+
+Accuracy correlates with cost only when $p$ and $q$ are constant and symmetric across class types.
+
+\paragraph*{Multiclass Evaluation}
+
+For multiclass problems (e.g., classes A, B, C), overall accuracy is still defined as:
+
+\begin{equation}
+\text{Accuracy} = \frac{\text{Number of correct predictions}}{N} = \frac{TP_A + TP_B + TP_C}{N}
+\end{equation}
+
+To assess class-specific performance, we apply a \textbf{one-vs-rest} approach: each class is evaluated in turn as a binary problem against all other classes combined. This allows us to compute per-class precision, recall, and F-measure using binary confusion matrices.
+
+\subsubsection{Methods for Performance Evaluation}
+Reliable performance estimates are essential for validating the effectiveness of a model. Typically, data is split into two sets: \textit{training} and \textit{test} sets. The model is trained on the training set and evaluated on the unseen test set to ensure generalizability.
+
+\paragraph{Parameter Tuning}
+During model development, the test data must stay completely separate from the training process. Algorithms that build a model structure and then optimize its parameters often need three distinct sets: training, validation, and test. We tune parameters on the validation set and reserve the test set for the final evaluation of performance. Once the model has been tuned and evaluated, all available data can go into building the final model. Larger training sets tend to improve the model, while larger test sets yield more accurate estimates of its error rate.
+
+
+Several methods are available for estimating model performance, each with its advantages and trade-offs:
+
+\begin{itemize}
+    \item \textbf{Holdout Method}: In this method, a portion of the data (e.g., 30\%) is reserved for testing. Common data splits include 60\%-40\%, 66\%-34\%, and 70\%-30\%. Stratified sampling is often used to ensure that both the training and test sets maintain similar class distributions.
+    
+    \item \textbf{Repeated Holdout}: This approach repeats the holdout method several times with different random splits of the data, then averages the error rates from each iteration for a more stable estimate. Test sets may overlap across iterations, however, which can introduce some bias.
+    
+    \item \textbf{Cross-Validation}: Cross-validation splits the data into $k$ subsets (folds). For each fold, the model is trained on the remaining $k-1$ subsets and tested on the current fold. The error rates are averaged across all folds, providing a more reliable estimate of model performance. Stratified cross-validation ensures that each fold maintains class balance. Repeating cross-validation (e.g., ten-fold cross-validation repeated ten times) can help reduce the variance in performance estimates.
+    
+    \item \textbf{Stratified Sampling}: This technique adjusts the class distribution in the data, either by oversampling the minority class or undersampling the majority class. It ensures that the class distribution in both the training and test sets is representative of the overall dataset.
+    
+    \item \textbf{Bootstrap}: The bootstrap draws samples with replacement to create multiple training sets. Each sample trains the model, and aggregating the results across these sets estimates performance.
+\end{itemize}
+
+
+\subsubsection{Methods for Model Comparison}
+
+\begin{definition}[ROC curve]
+The \textbf{Receiver Operating Characteristic (ROC) curve} shows the trade-off between true positives (TPR) and false positives (FPR):
+\begin{equation}
+\text{TPR} = \frac{TP}{TP + FN}, \quad \text{FPR} = \frac{FP}{FP + TN}
+\end{equation}
+Each point represents performance at a specific threshold. Key points include:
+\begin{itemize}
+\item (0,0): All negatives
+\item (1,1): All positives
+\item (0,1): Perfect classification
+\item Diagonal: Random guessing
+\item Below diagonal: Opposite prediction
+\end{itemize}
+To compare models, we check dominance across thresholds or use the Area Under the Curve (AUC). An ideal classifier has AUC = 1, random guessing yields AUC = 0.5.
+\end{definition}
+
+\begin{algorithm}
+\caption{ROC Curve Construction}
+\begin{algorithmic}
+\Require Classifier producing posterior probabilities $P(+|A)$ for each test instance
+\Ensure ROC Curve
+\State Sort instances by $P(+|A)$ in decreasing order
+\For{each unique threshold in $P(+|A)$}
+    \State Apply threshold to classify instances
+    \State Count TP, FP, TN, FN
+    \State Compute TPR = TP/(TP+FN) and FPR = FP/(FP+TN)
+\EndFor
+\State Plot TPR vs. FPR
+\end{algorithmic}
+\end{algorithm}
+
+When comparing models, we must ensure that observed performance differences are statistically significant. A model with 85\% accuracy on 30 instances, for instance, cannot be compared directly to another with 75\% accuracy on 5,000 instances.
+
+\begin{definition}[Bernoulli trial]
+Prediction accuracy can be modeled as a Bernoulli trial. Given a model's accuracy $acc = \frac{x}{N}$ on $N$ test instances, the true accuracy $p$ is estimated as follows. For $N > 30$, $acc$ follows a normal distribution with mean $p$ and variance $\frac{p(1-p)}{N}$. The $(1-\alpha)$ confidence interval for $p$ is:
+\begin{equation}
+p \in \left[acc - Z_{\alpha/2}\sqrt{\frac{acc(1-acc)}{N}}, acc + Z_{\alpha/2}\sqrt{\frac{acc(1-acc)}{N}}\right]
+\end{equation}
+where $Z_{\alpha/2}$ is the standard normal quantile for confidence level $(1-\alpha)$.
+\end{definition}
+
+To compare models $M_1$ and $M_2$ tested on datasets $D_1$ and $D_2$ with sizes $n_1$ and $n_2$, and error rates $e_1$ and $e_2$, we assess if the difference $d = e_1 - e_2$ is significant. For large $n_1, n_2$, the variance of error rates is:
+\begin{equation}
+\sigma_1^2 \approx \frac{e_1(1-e_1)}{n_1}, \quad \sigma_2^2 \approx \frac{e_2(1-e_2)}{n_2}
+\end{equation}
+The total variance is:
+\begin{equation}
+\sigma_d^2 = \frac{e_1(1-e_1)}{n_1} + \frac{e_2(1-e_2)}{n_2}
+\end{equation}
+At $(1-\alpha)$ confidence, the interval is:
+\begin{equation}
+d_t \in \left[d - Z_{\alpha/2}\sigma_d, d + Z_{\alpha/2}\sigma_d\right]
+\end{equation}
+If zero is within this interval, the difference is not significant.
+
+For $k$ models generated by two algorithms on the same test sets, we compute the mean difference $\hat{d_t}$ and variance $\hat{\sigma_t^2}$:
+\begin{equation}
+\hat{d_t} = \frac{1}{k}\sum_{j=1}^{k} d_j
+\end{equation}
+\begin{equation}
+\hat{\sigma_t^2} = \frac{1}{k(k-1)}\sum_{j=1}^{k} (d_j - \hat{d_t})^2
+\end{equation}
+
+\begin{definition}[Lift chart]
+The \textbf{lift chart} (or cumulative gains chart) is used in direct marketing to assess model performance. It plots cumulative true positives on the y-axis against the cumulative number of cases sorted by predicted probability on the x-axis. The diagonal line represents random selection.
+\end{definition}
+
+\subsection{Decision Tree Classifiers}
+
+\textbf{Decision trees} are hierarchical models that classify an instance by routing it from the root to a leaf through a sequence of attribute tests. We build the tree recursively, choosing at each step the attribute that best separates the classes.
+
+\begin{algorithm}
+\caption{Hunt's Algorithm for Decision Tree Induction}
+\begin{algorithmic}[1]
+\Procedure{BuildTree}{$D_t$}
+\State Let $D_t$ be the training records at node $t$
+\If{$D_t$ belongs to a single class $y_t$}
+    \State Mark $t$ as a leaf labeled $y_t$
+\ElsIf{$D_t$ contains multiple classes}
+    \State Select an attribute to split the data
+    \State Create child nodes for each split outcome
+    \State Recursively apply the procedure to child nodes
+\EndIf
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+A decision tree starts with all data at the root. If all records at a node belong to one class, the node becomes a leaf. Otherwise, the algorithm selects an attribute and splits the data into child nodes, repeating the process recursively.
+
+\subsubsection{Attribute Selection Measures}
+
+\begin{definition}[Gini index]
+The \textbf{Gini index} measures node impurity. For node $t$, it is defined as:
+\begin{equation}
+\text{GINI}(t) = 1 - \sum_{j} [p(j|t)]^2 \quad \text{where} \quad p(j|t) \text{ is the class probability at node } t.
+\end{equation}
+For binary classification, the Gini index simplifies to:
+\begin{equation}
+\text{GINI} = 2p(1-p)
+\end{equation}
+The Gini index ranges from 0 (pure node) to $1 - \frac{1}{n_c}$ (least pure, equally distributed classes).
+
+For a split with $k$ partitions, the \textbf{weighted Gini index} is:
+\begin{equation}
+\text{GINI}_{\text{split}} = \sum_{i=1}^{k} \frac{n_i}{n} \text{GINI}(i)
+\end{equation}
+where $n_i$ and $n$ are the number of records in partition $i$ and at the parent node, respectively.
+\end{definition}
+
+\begin{definition}[entropy]
+\textbf{Entropy} measures node impurity and is defined as:
+\begin{equation}
+\text{Entropy}(t) = -\sum_{j} p(j|t) \log_2 p(j|t)
+\end{equation}
+Entropy ranges from 0 (pure node) to $\log_2 n_c$ (least pure, equally distributed classes).
+
+\textbf{Information gain} from a split is the reduction in entropy:
+\begin{equation}
+\text{GAIN} = \text{Entropy}(p) - \sum_{i=1}^{k} \frac{n_i}{n} \text{Entropy}(i)
+\end{equation}
+\end{definition}
+
+\begin{definition}[Gain ratio]
+The \textbf{Gain Ratio} is used to address the bias of information gain towards attributes with many partitions:
+\begin{equation}
+\text{GainRATIO} = \frac{\text{GAIN}}{\text{SplitINFO}}
+\end{equation}
+where \textbf{SplitINFO} measures the potential information from splitting:
+\begin{equation}
+\text{SplitINFO} = -\sum_{i=1}^{k} \frac{n_i}{n} \log_2 \frac{n_i}{n}
+\end{equation}
+\end{definition}
+
+\begin{definition}[misclassification error]
+The \textbf{misclassification error} at node $t$ is:
+\begin{equation}
+\text{Error}(t) = 1 - \max_i P(i|t)
+\end{equation}
+where $P(i|t)$ is the relative frequency of class $i$ at node $t$.
+\end{definition}
+\subsubsection{Test Conditions}
+Different attribute types require different test conditions:
+
+\begin{itemize}
+    \item \textbf{Nominal Attributes} can be split as:
+        \begin{itemize}
+            \item \textbf{Multi-way}: One branch per value.
+            \item \textbf{Binary}: Group values into two subsets.
+        \end{itemize}
+    \item \textbf{Ordinal Attributes} can be split as:
+        \begin{itemize}
+            \item \textbf{Multi-way} or \textbf{Binary}, preserving order.
+        \end{itemize}
+    \item \textbf{Continuous Attributes} typically split by:
+        \begin{itemize}
+            \item \textbf{Binary split}: Threshold-based.
+            \item \textbf{Discretization}: Convert to ordinal categories.
+        \end{itemize}
+    To find the best split for continuous attributes: sort values; scan through values, update counts, and compute impurity; select split with minimal impurity.
+\end{itemize}
+
+\subsubsection{DT Algorithms}
+\begin{itemize}
+    \item \textbf{ID3}: Uses Hunt's algorithm and information gain for categorical attributes, no pruning.
+    \item \textbf{C4.5}: Extends ID3 by handling continuous attributes, missing values, and pruning, using gain ratio.
+    \item \textbf{CART}: Builds binary trees using Gini index, for both classification and regression.
+    \item \textbf{C5.0}: A commercial upgrade of C4.5 with enhanced performance.
+    \item \textbf{SLIQ \& SPRINT}: Optimized for large datasets that don't fit in memory.
+\end{itemize}
+
+Finding an optimal decision tree is \textit{NP-hard}. Most algorithms use a greedy, top-down partitioning strategy to build effective trees quickly.
+
+The complexity for constructing a tree is $O(M \cdot N \log N)$, where $M$ is the number of attributes and $N$ is the number of instances. Classification has a worst-case complexity of $O(w)$, where $w$ is the tree's maximum depth.
+
+\subsubsection{Handling Attributes}
+
+\paragraph{Irrelevant and Redundant Attributes}
+Irrelevant attributes have little effect on purity and may reduce model performance; feature selection removes them during preprocessing. Redundant attributes are highly correlated, and decision trees handle them naturally by selecting just one of the group for splitting.
+
+\paragraph{Handling Missing Values}
+\begin{itemize}
+    \item Missing values should be properly considered when computing impurity.
+    \item Instances with missing values are assigned probabilistically.
+    \item At classification time, methods like C4.5's probabilistic split are used to handle missing values.
+\end{itemize}
+
+\subsubsection{Advantages and Disadvantages}
+
+Decision trees are popular for classification thanks to their \textbf{ease of interpretation}, \textbf{minimal data preprocessing}, and ability to handle both numerical and categorical data. They perform \textbf{implicit feature selection}, which reduces the impact of irrelevant attributes. Fast to construct and tolerant of missing values, they suit many real-world applications.
+
+However, decision trees have limitations:
+\begin{itemize}
+    \item They are prone to \textbf{overfitting}, especially without pruning.
+    \item They can be \textbf{unstable}, with small data changes affecting the tree.
+    \item They may \textbf{favor attributes with more levels} when using information gain.
+    \item \textbf{Axis-parallel decision boundaries} may fail to capture complex patterns. Oblique trees can address this but are computationally expensive.
+    \item Deeper trees suffer from \textbf{data fragmentation} and struggle with \textbf{certain Boolean functions}.
+    \item \textbf{Tree replication} increases complexity unnecessarily.
+\end{itemize}
+
+Careful tuning and pruning keep most of these problems in check, which is why decision trees remain a practical default.
+
+\subsubsection{Pruning}
+\paragraph{Pre-pruning} halts tree growth early if:
+\begin{itemize}
+    \item All instances belong to the same class.
+    \item All attribute values are identical.
+\end{itemize}
+Additional restrictive criteria include:
+\begin{itemize}
+    \item Number of instances falls below a threshold.
+    \item Class distribution is independent of attributes (e.g., via $\chi^2$ test).
+    \item Splitting doesn't improve impurity measures (e.g., Gini or information gain).
+    \item Generalization error falls below a threshold.
+\end{itemize}
+
+\paragraph{Post-pruning} grows the full tree and then trims it bottom-up. If pruning reduces generalization error, the subtree is replaced by a majority class leaf. Methods like Minimum Description Length (MDL) can guide pruning.
+
+\subsubsection{Decision Trees for Regression}
+The same procedures used for classification apply to regression, with differences in predictions: leaves return the average value, and optimization uses Mean Squared Error (MSE) or Mean Absolute Error (MAE).
+
+\begin{algorithm}
+\caption{Basic Decision Tree Construction}
+\begin{algorithmic}[1]
+\State Input: Training dataset $D$ with attributes $A$ and class labels
+\State Output: Decision tree
+\Function{BuildTree}{D, A}
+    \If{all instances in $D$ have the same class label $c$}
+        \State \Return leaf node with class label $c$
+    \EndIf
+    \If{$A$ is empty or all instances in $D$ have the same attribute values}
+        \State \Return leaf node with majority class in $D$
+    \EndIf
+    \State Select best attribute $a$ from $A$ based on impurity measure
+    \State Create root node with test condition on $a$
+    \For{each value $v$ of $a$}
+        \State Create branch for condition $a = v$
+        \State Let $D_v$ be subset where $a = v$
+        \If{$D_v$ is empty}
+            \State Add leaf node with majority class in $D$
+        \Else
+            \State Add subtree $BuildTree(D_v, A - \{a\})$
+        \EndIf
+    \EndFor
+    \State \Return root node
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Practical Issues of Classification}
+
+\begin{definition}[Classification errors]
+\textbf{Classification errors} include \textbf{training errors} (on the training set), \textbf{test errors} (on the test set), and \textbf{generalization errors} (expected errors over random records from the same distribution).
+\end{definition}
+
+\textbf{Underfitting} occurs when a model is too simple (large errors on both training and test sets), and \textbf{overfitting} occurs when a model is too complex (fits training data too closely, including noise and outliers; good on training data, poor on test data).
+
+Overfitting can stem from insufficient data: when some regions of the feature space have too few examples, the model generalizes poorly there. Noise adds a second cause, distorting the decision boundary and pushing the model toward needless complexity.
+
+\subsubsection{Model Selection}
+Model selection keeps a model from growing too complex and so guards against overfitting. It splits the data into a \textbf{training set} (for building the model) and a \textbf{validation set} (for estimating generalization error). Common approaches are the \textit{holdout method} (e.g., a 70/30 split) and \textit{cross-validation}, which divides the data into multiple folds.
+
+When two models have similar generalization errors, the simpler model should be chosen to avoid overfitting noise. Model evaluation considers complexity:
+\begin{equation}
+Error_{Generalization}(Model) = Error_{Train}(Model, Data_{Train}) + \alpha \cdot Complexity(Model)
+\end{equation}
+where $\alpha$ is a complexity parameter.
+
+\textbf{Estimating Generalization Errors} distinguishes between \textbf{re-substitution errors} (training error, $\hat{\text{err}}(t)$) and \textbf{generalization errors} (test error, $\hat{\text{err}}^*(t)$).
+
+Generalization errors can be estimated using:
+\begin{itemize}
+    \item \textbf{Pessimistic approach}: Assumes a higher error rate to prevent overfitting.
+    \item \textbf{Optimistic approach}: Risks overfitting.
+    \item \textbf{Reduced error pruning (REP)}: Uses a validation set for more accurate estimates.
+\end{itemize}
+
+\begin{example}[Estimating the complexity of Decision Tree $T$]
+\begin{equation}
+\hat{\text{err}}^*(T) = \hat{\text{err}}(T) + \alpha \cdot \frac{k}{N_{\text{train}}}
+\end{equation}
+where $\hat{\text{err}}(T)$ is the training error rate, $\alpha$ is the cost of adding a leaf, $k$ is the number of leaves, and $N_{\text{train}}$ is the total number of training records.
+\end{example}

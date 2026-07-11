@@ -1,0 +1,143 @@
+\section{Dimensionality Reduction}
+
+\textbf{Dimensionality reduction} reduces the number of variables in the dataset, obtaining a set of \textbf{principal variables}. Approaches for dimensionality reduction split into two families:
+\begin{itemize}
+    \item \textbf{feature selection}: removing features from the original dataset;
+    \item \textbf{feature projection}: creating new variables that were not present in the original dataset.
+\end{itemize}
+
+\subsection{Feature Selection}
+
+Feature selection methods fall into three categories:
+\begin{itemize}
+    \item \textbf{filter strategy} (e.g. F-Value);
+    \item \textbf{wrapper strategy} (e.g. RFE);
+    \item \textbf{embedded strategy}: feature selection happens at the algorithm level, where parameters are modified and appropriate weights are assigned to each feature.
+\end{itemize}
+
+Feature relevance is evaluated using metrics like \textit{Information Gain}, removing features that fall below a specified threshold.
+
+\subsubsection{Variance Threshold}
+
+\textbf{Variance threshold} eliminates zero-variance features, those that hold a constant value across all samples.
+
+\subsubsection{Univariate Feature Selection}
+\textbf{Univariate feature selection} selects features based on statistical tests. For instance, it removes all but the $k$ highest scoring features.
+
+\paragraph{ANOVA F-Value (Univariate Feature Selection, Filter Strategy)}
+For the \textbf{ANOVA F-value}, a large $F$-value indicates significant differences between group means, suggesting the feature is important for classification. The $F$-value is large when the numerator is large, which is unlikely to happen when the population means of the groups all share the same value.
+\begin{equation}
+    F-value = \dfrac{\sum_{i=1}^K n_i(\bar{Y}_i - \bar{Y})^2 / (K-1)}{\sum_{i=1}^K \sum_{j=1}^{n_i} (Y_{ij} - \bar{Y}_i)^2 / (N-K)} \,,
+\end{equation}
+\begin{itemize}
+  \item $\bar{Y}_i/\bar{Y}$, mean of the $i^{th}$ group/overall mean;
+  \item $n_i$, number of observations in the $i^{th}$ group;
+  \item $Y_{ij}$, $j^{th}$ observation in the $i^{th}$ group (out of $K$ groups, with $N$ sample size);
+\end{itemize}
+
+\paragraph{Select From Model (SFM)}
+Given an external estimator that assigns weights to features (e.g., the coefficients of a linear model, or the feature importance of a decision tree), \textbf{SFM} selects features based on their importance. We fit the estimator once, read the importance of each feature, and keep those whose importance exceeds a given threshold, discarding the rest. Unlike RFE, it does not refit or prune recursively.
+
+\paragraph{Recursive Feature Elimination (RFE)}
+Given an external estimator that assigns weights to features (\textit{coefficients of a linear model}, \textit{feature importance of decision tree}, ...), \textbf{RFE} selects features by recursively considering smaller and smaller sets of features. First, the estimator is trained on the initial set of features and the importance of each feature is obtained. Then, the least important features are pruned from the current set of features.
+
+
+\subsection{Feature Projection}
+Feature projection transforms the data from the high-dimensional space to a space of fewer dimensions. The transformation may be linear or nonlinear.
+
+\subsubsection{Random Subspace Projection (RSP)}
+\textbf{RSP} projects high-dimensional data into a lower-dimensional space using a random matrix: it preserves data structure (\textit{distances}), is efficient, and does not optimize any criterion.
+
+Let \( X \) be a dataset with \( n \) samples (rows) and \( m \) features (columns); a \textbf{projection matrix} is generated with \( k \) dimensions (\textit{target dimensionality}). The final matrix is \( n \times k \), with elements selected randomly.
+
+
+\subsubsection{Principal Component Analysis (PCA)}
+\textbf{PCA} finds a new set of attributes that capture data variability more effectively. The first principal component maximizes variance, the second is orthogonal to the first and captures the most remaining variance, and so on, until the desired number of dimensions is reached. These components are linear transformations of the original attributes. Once the dataset has been transformed, any reconstruction will have some error.
+
+\textbf{Principal Components (PCs)} are new variables created as linear combinations of the original variables. They are uncorrelated, with the first component capturing the most variance.
+
+\paragraph{Covariance, Eigenvalues and Eigenvectors}
+Variance measures the deviation from the mean for points in one dimension; covariance measures how much two dimensions vary from their means with respect to each other.
+
+\begin{equation}
+    covariance(x,y) = s_{xy} = \frac{1}{n-1}\sum_{k=1}^n (x_k - \overline x)(y_k - \overline y)
+\end{equation}
+
+The covariance matrix stores the pairwise covariance between attributes.
+
+\begin{equation}
+\begin{bmatrix}
+\mathrm{Cov}(x_1, x_1) & \mathrm{Cov}(x_1, x_2) & \cdots & \mathrm{Cov}(x_1, x_n) \\
+\mathrm{Cov}(x_2, x_1) & \mathrm{Cov}(x_2, x_2) & \cdots & \mathrm{Cov}(x_2, x_n) \\
+\vdots & \vdots & \ddots & \vdots \\
+\mathrm{Cov}(x_n, x_1) & \mathrm{Cov}(x_n, x_2) & \cdots & \mathrm{Cov}(x_n, x_n)
+\end{bmatrix}
+\end{equation}
+
+Positive covariance means the attributes vary together, negative means they vary oppositely, and zero indicates independence. The diagonal contains each attribute's variance, and since the matrix is symmetric, its eigenvectors are orthonormal. We rank the eigenvalues in decreasing order and select those that retain a fixed percentage of variance.
+
+\textbf{Note:} if $\lambda_i$ are the eigenvalues, $\frac{\lambda_k}{\sum_i \lambda_i}$ is the proportion of the variance captured by the $k^{th}$ PC.
+
+PCA therefore identifies the principal components by computing the eigenvectors and eigenvalues of the covariance matrix. It packs the maximum possible information into the first component, then the maximum remaining information into the second, and so on.
+
+\subsubsection{Singular Value Decomposition (SVD)}
+\textbf{SVD} computes the eigenvalues and eigenvectors of the covariance matrix. Given $A \in R^{m \times n}$:
+\begin{equation*}
+    A = U \Sigma V^T \,,
+\end{equation*}
+where $\Sigma$ is a diagonal matrix whose entries are the singular values of $A$, and the columns of $V$ are the eigenvectors of the covariance matrix $X^T X$, sorted from largest to smallest eigenvalues.
+    
+\subsubsection{Multi-Dimensional Scaling (MDS)}
+\textbf{MDS} maps data into a lower-dimensional space while preserving relative distances. Points that are close in the original feature space should remain close in the latent space. MDS is primarily used for visualization in 2D or 3D, but also supports clustering and classification tasks. Unlike PCA, MDS is not invertible.
+
+Given a pairwise dissimilarity matrix $D$ and target dimensionality $k$, MDS finds a mapping where $d_{ij} = \|x_i - x_j\|$ for all points, preserving the original distances. The algorithm minimizes the following stress function via gradient descent:
+\begin{equation}
+    J(x) = \sum_{i=1}^n \sum_{j=1}^n d_1 (d_{ij}, d_2(x_i, x_j))
+\end{equation}
+
+\textit{Classic MDS} uses Euclidean distances throughout, \textit{Metric-MDS} employs various metric distances, and \textit{Non-Metric-MDS} uses ranks of distances rather than their actual values.
+
+\subsubsection{Sammon Mapping}
+
+\textbf{Sammon Mapping}, like \textit{MDS}, seeks to embed high-dimensional data into a lower-dimensional space while preserving pairwise distances. However, it introduces a weighting scheme that emphasizes local structure by giving more importance to smaller distances.
+
+Formally, given a set of points with pairwise distances \( d_{ij} \), it minimizes the following function:
+\begin{equation}
+    J(x) = \sum_{i=1}^n \sum_{j=1}^n \frac{d_1(d_{ij},d_2(x_i,x_j))}{d_{ij}}
+\end{equation}
+
+The division by \( d_{ij} \) normalizes the squared errors, making the function more sensitive to small distances. It preserves better local geometry than MDS (\textit{which treats all distances equally}). Sammon Mapping therefore compresses larger inter-point distances while retaining fine-grained structure in local neighborhoods.
+
+\subsubsection{Isometric Feature Mapping (ISOMAP)}
+\textbf{ISOMAP} handles data with complex, non-linear relationships while preserving its intrinsic geometry. The algorithm follows three steps:
+\begin{itemize}
+    \item [1.] \textit{construct neighborhood graph}: find NNs using Euclidean distance and create weighted graph $G$ with edges weighted by distance.
+    
+    \item [2.] \textit{calculate geodesic distances}: compute shortest paths between all point pairs on $G$ (shorter paths indicate closer points).
+    
+    \item [3.] \textit{generate embedding}: create a $k$-dimensional representation that preserves the manifold's structure.
+\end{itemize}
+\subsubsection{t-Distributed Stochastic Neighbor Embedding (t-SNE)}
+\textbf{t-SNE} visualizes high-dimensional data. Unlike PCA, which captures global linear structure, t-SNE emphasizes local relationships by preserving distances and neighborhood probabilities between nearby points. It measures pairwise similarities in both high- and low-dimensional spaces. It models the probability that \( x_i \) selects \( x_j \) as neighbor using a Gaussian distribution centered at \( x_i \):
+\begin{equation}
+    p_{j|i} = \frac{e^{{-\frac{\|x_i - x_j\|^2}{2 \sigma_i^2}}}}{\sum_{k \neq i} e^{{-\frac{\|x_i - x_k\|^2}{2 \sigma_i^2}}}}
+\end{equation}
+The \textit{bandwidth} \( \sigma_i \) controls neighborhood size: smaller values emphasize closer neighbors, while larger values result in broader neighborhoods. To make the distribution symmetric, we define:
+\begin{equation}
+    p_{ij} = \frac{1}{2N}(p_{j|i} + p_{i|j})
+\end{equation}
+To set \( \sigma_i \), t-SNE uses the concept of \textbf{perplexity}, defined as:
+\begin{equation}
+    \textit{perp}(p_{j|i}) = 2^{H(p_{j|i})} \qquad H(p_{j|i}) =  -\sum_j p_{j|i} \log p_{j|i} ~entropy
+\end{equation}
+A uniform distribution over \( k \) elements has perplexity \( k \), making it a smooth measure of effective neighborhood size. In the low-dimensional space, similarities are defined using a Student-t distribution with one degree of freedom (a Cauchy distribution):
+\begin{equation}
+    q_{ij} = \frac{(1 + \|y_i - y_j\|^2)^{-1}}{\sum_{k \neq l} (1 + \|y_k - y_l\|^2)^{-1}}
+\end{equation}
+The goal is to find embeddings \( y_1, \dots, y_n \in \mathbb{R}^k \) (with \( k < m \)) that make \( q_{ij} \) match \( p_{ij} \) as closely as possible. This is achieved by minimizing the \textbf{Kullback-Leibler (KL) divergence}:
+\begin{equation}
+    C = \sum_i \sum_j p_{ij} \log \left( \frac{p_{ij}}{q_{ij}} \right)
+\end{equation}
+KL-divergence is asymmetric, making t-SNE a non-metric method. It is typically minimized via GD.
+
+\textit{Note: t-SNE is non-convex and may converge to local minima, so multiple restarts can improve results. The ``crowding problem'' arises because high-dimensional space supports many nearby points, while a 2D projection cannot maintain such density uniformly. The heavy-tailed distribution in the low-dimensional space keeps moderate distances significant.}

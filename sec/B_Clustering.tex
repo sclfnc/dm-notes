@@ -1,0 +1,315 @@
+\section{Clustering}
+
+\textbf{Cluster analysis} aims to group objects such that members of the same group are more similar to each other than to those in other groups. Clusters can be characterized as:
+
+\begin{itemize}
+    \item \textbf{Well-Separated}: each point is closer to every other point in its cluster than to any point in another cluster.
+    \item \textbf{Center-Based}: points are closer to the cluster center than to centers of other clusters.
+    \item \textbf{Contiguous}: points are connected to at least one other point in their cluster, forming continuous regions.
+    \item \textbf{Density-Based}: dense regions separated by sparse ones; effective for irregular shapes and noise.
+    \item \textbf{Objective Function-Based}: clusters are formed by optimizing a specific objective function.
+\end{itemize}
+
+\subsection{Cluster Validity Assessment}
+
+To evaluate clustering, we compare \textbf{matrix $A$}, the pairwise distance (or similarity) matrix, with \textbf{matrix $B$}, the ideal similarity matrix, whose entries are 1 if two points share a cluster and 0 otherwise.
+
+\textbf{Correlation} between the upper triangular entries of $A$ and $B$ (totaling $\frac{n(n-1)}{2}$ values) measures cluster compactness. A strong negative correlation suggests well-formed, compact clusters.
+
+A reordered \textbf{similarity matrix}, based on cluster labels, can visually reveal clear cluster boundaries. Well-defined clusters appear as distinct blocks; random data results in fuzzy patterns.
+
+\textbf{Sum of Squared Errors (SSE)} helps compare clustering methods or estimate the optimal number of clusters. The "elbow" point on the SSE curve indicates the ideal cluster count. For $k$ clusters with centroids $\mu_i$ and points $x \in C_i$, SSE is:
+
+\begin{equation}
+    SSE = \sum_{i=1}^{k} \sum_{x \in C_i} ||x - \mu_i||^2
+\end{equation}
+
+Lower SSE values indicate tighter clusters.
+
+\textbf{Silhouette Coefficient} evaluates both cohesion (within-cluster similarity) and separation (between-cluster dissimilarity). For a point $i$:
+
+\begin{itemize}
+    \item $a$: average distance to other points in the same cluster (cohesion)
+    \item $b$: average distance to points in the nearest different cluster (separation)
+\end{itemize}
+
+\begin{equation}
+    s = \frac{b - a}{\max(a, b)} \quad \text{where } s \in [-1, 1] \qquad (silhouette~score)
+\end{equation}
+
+Higher $s$ values indicate better-defined clusters; values near 0 suggest overlapping clusters.
+
+
+\subsection{Centroid-Based Clustering}
+\subsubsection{K-Means}
+\textbf{K-Means} divides a dataset into $K$ distinct clusters. Each cluster is defined by a \textbf{centroid}, and points are assigned to the nearest centroid.
+
+\begin{algorithm}
+\caption{K-Means Clustering}
+\textbf{Input:} Dataset $X = \{x_1, \dots, x_n\}$, number of clusters $K$ \\
+\textbf{Output:} Centroids $C = \{c_1, \dots, c_K\}$, cluster assignments
+\begin{algorithmic}[1]
+\State Initialize $K$ centroids $C = \{c_1, \dots, c_K\}$ randomly
+\Repeat
+    \For{each point $x_i \in X$}
+        \State Assign to nearest centroid: $a_i = \arg\min_j d(x_i, c_j)$
+    \EndFor
+    \For{each centroid $c_j$}
+        \State Update: $c_j = \frac{1}{|S_j|} \sum_{x_i \in S_j} x_i$
+    \EndFor
+\Until{centroids do not change}
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{K-Means Evaluation (SSE)} For each $x_i \in X$, the error is its distance to the nearest centroid $c_j \in C$; SSE sums these errors over all points.
+\subsubsection{Bisecting K-Means}
+
+\textbf{Bisecting K-Means} is a hierarchical clustering method that requires a target number of clusters $K$. It begins with all points in a single cluster and repeatedly splits the cluster with the highest SSE using 2-Means, until $K$ clusters are formed. Splitting could continue until every point is isolated, but that is expensive and rarely meaningful, since intermediate clusters usually capture the data structure better. The target $K$ is therefore the only stopping criterion: without it the method runs down to singletons.
+
+\subsubsection{X-Means}
+
+\textbf{X-Means} extends K-Means by automatically selecting the number of clusters using \textbf{BIC}.
+
+\begin{algorithm}
+\caption{X-Means Clustering}
+\begin{algorithmic}[1]
+\Require Range of clusters $[r_1, r_{\text{max}}]$
+\State Initialize $k = r_1$
+\While{$k \leq r_{\text{max}}$}
+    \State Run K-Means with $k$ clusters
+    \For{each cluster}
+        \State Attempt to split using 2-Means and evaluate using BIC
+        \If{BIC improves}
+            \State Accept split
+        \Else
+            \State Retain original cluster
+        \EndIf
+    \EndFor
+    \State Compute global BIC for current clustering
+    \If{$k > r_{\text{max}}$}
+        \State \Return best model based on global BIC
+    \EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+\begin{equation}\label{BIC}
+BIC(M_j) = \hat{l}_j(D) - \frac{p_j}{2} \log(R) \qquad (Bayesian~Information~Criterion)
+\end{equation}
+
+\begin{itemize}
+    \item $\hat{l}_j(D)$: log-likelihood of the data given model $M_j$; measures how well cluster $j$ fits its assigned points.
+    \item $p_j$: number of parameters (e.g., centroid coordinates, variance).
+    \item $R$: number of points in the cluster.
+\end{itemize}
+
+BIC decides whether a cluster should be split: it compares the parent cluster to its two-child configuration and prefers the structure with better compactness and lower model complexity.
+
+\subsection{Model-Based Clustering (Probabilistic Approach)}
+
+\textbf{Model-based clustering} assumes data is generated from an underlying probabilistic model, typically a mixture of distributions. Since different subsets of data may follow different distributions, a single global model is often insufficient.
+
+\subsubsection{Expectation-Maximization Algorithm}
+
+The \textbf{Expectation-Maximization (EM)} algorithm generalizes K-Means to probabilistic settings. Like K-Means, EM alternates between assigning data points to clusters (E-step) and updating model parameters (M-step), but with soft (probabilistic) assignments.
+
+\paragraph{Gaussian Mixture Model (GMM)}
+
+A \textbf{Gaussian Mixture Model} represents clusters as Gaussian distributions, each with its own mean and variance. Instead of assigning each point to a single cluster, GMM estimates the probability that a point belongs to each cluster.
+
+\textbf{Maximum Likelihood Estimation (MLE)} fits model parameters to the data. EM provides an iterative solution when cluster assignments are unknown (latent). In each iteration:
+\begin{itemize}
+    \item \textbf{E-step:} Estimate the probability that each point belongs to each Gaussian.
+    \item \textbf{M-step:} Update the parameters (means, variances, and mixture weights) based on these probabilities.
+\end{itemize}
+
+GMMs offer a flexible alternative to K-Means by modeling uncertainty in assignments and capturing clusters with varying shapes and orientations.
+
+\subsection{Hierarchical Clustering}
+\textbf{Hierarchical clustering} creates nested clusters organized in a tree-like structure called a \textbf{dendrogram}, which illustrates how clusters are merged or split over iterations. It does not require a predefined number of clusters, as they can be determined by cutting the dendrogram at the desired level.
+
+\begin{itemize}
+    \item \textbf{Agglomerative} (bottom-up): starts with each data point as its own cluster, then iteratively merges the closest pairs until only one cluster remains.
+    \item \textbf{Divisive} (top-down): begins with all data points in one cluster and recursively splits them into smaller clusters until only singletons remain.
+\end{itemize}
+
+\begin{algorithm}
+\caption{Hierarchical Clustering}
+\label{alg:hierarchical}
+\begin{algorithmic}[1]
+\Require Dataset $X = \{x_1, \ldots, x_n\}$
+\Ensure Dendrogram representing the hierarchical clustering of $X$
+\State Initialize each $x_i$ as its own cluster $C_i$
+\State Compute initial proximity matrix $D$
+\While{$|S| > 1$ and stopping condition not met}
+    \State Find the closest pair $(C_i, C_j)$ based on $D$
+    \State Merge them into a new cluster $C_{\text{new}}$
+    \State Update $S$ and proximity matrix $D$
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+\subsubsection{Inter-Cluster Distance Methods}
+The proximity between clusters is a key operation in agglomerative clustering. Different linkage criteria define how distances are computed, leading to different clustering behaviors.
+
+\paragraph{Single Linkage (MIN)} 
+Distance between the closest pair of points from two clusters:
+\begin{equation}
+d_{MIN}(A, B) = \min_{a \in A, b \in B} d(a, b)
+\end{equation}
+Sensitive to noise and outliers; good for detecting elongated or irregular shapes.
+
+\paragraph{Complete Linkage (MAX)} 
+Distance between the farthest pair of points from two clusters:
+\begin{equation}
+d_{MAX}(A, B) = \max_{a \in A, b \in B} d(a, b)
+\end{equation}
+Produces compact clusters; less sensitive to noise but may break large clusters.
+
+\paragraph{Group Average}
+Average distance between all pairs of points across clusters:
+\begin{equation}
+d_{AVG}(A, B) = \frac{1}{|A||B|} \sum_{a \in A} \sum_{b \in B} d(a, b)
+\end{equation}
+Balances the tendencies of single and complete linkage; moderately robust to outliers.
+
+\paragraph{Ward's Method}
+Based on the increase in SSE when merging clusters:
+\begin{equation}
+d_{Ward}(A, B) = \sqrt{\frac{2|A||B|}{|A|+|B|}} \|m_A - m_B\|
+\end{equation}
+Where $m_A$ and $m_B$ are the centroids of clusters $A$ and $B$. Minimizes variance; favors compact, spherical clusters.
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|l|p{4cm}|p{7.5cm}|}
+\hline
+\textbf{Method} & \textbf{Cluster Shape} & \textbf{Pros and Cons} \\
+\hline
+\textbf{MIN (Single)} & Elongated, chain-like & Detects non-elliptical shapes well; sensitive to noise and outliers. \\
+\hline
+\textbf{MAX (Complete)} & Compact, uniform & Resists outliers; biased toward small, globular clusters. \\
+\hline
+\textbf{Group Average} & Balanced & Good compromise between MIN and MAX; fairly robust. \\
+\hline
+\textbf{Ward's} & Spherical, compact & Minimizes variance; robust and often used with K-Means. \\
+\hline
+\end{tabular}
+\caption{Comparison of inter-cluster distance methods.}
+\end{table}
+
+The choice of method should reflect the data's structure and the clustering goals.
+
+
+\subsection{Density-Based Clustering}
+\textbf{Density-based clustering} detects clusters of arbitrary shapes by identifying dense regions of data, separated by areas of lower density.
+
+\subsubsection{DBSCAN}
+\textbf{DBSCAN} defines clusters as areas of high point density. It relies on $\varepsilon$ (radius defining a point's neighborhood) and $MinPts$ (minimum number of points required to form a dense region). A point is a:
+\begin{itemize}
+    \item \textbf{Core point} if its $\varepsilon$-neighborhood contains at least $MinPts$ points (including itself);
+    \item \textbf{Border point} if it lies within a core point's neighborhood but has fewer than $MinPts$ neighbors;
+    \item \textbf{Noise point} if it's neither a core nor border point.
+\end{itemize}
+
+
+\begin{algorithm}
+\caption{DBSCAN Clustering Algorithm}
+\begin{algorithmic}[1]
+\State $current\_cluster\_label \gets 0$
+\For{each core point $p$}
+    \If{$p$ has no cluster label}
+        \State $current\_cluster\_label \gets current\_cluster\_label + 1$
+        \State Label $p$ with cluster label $current\_cluster\_label$
+        \State $Seeds \gets \varepsilon\text{-}neighborhood_p \setminus \{p\}$
+        \While{$Seeds \neq \emptyset$}
+            \State Remove a point $q$ from $Seeds$
+            \If{$q$ does not have a cluster label}
+                \State Label $q$ with cluster label $current\_cluster\_label$
+                \If{$q$ is a core point}
+                    \State $Seeds \gets Seeds \cup (\varepsilon\text{-}neighborhood_q \setminus \{q\})$
+                \EndIf
+            \EndIf
+        \EndWhile
+    \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+
+DBSCAN is effective at identifying non-spherical clusters and is robust to noise. However, it struggles with:
+\begin{itemize}
+    \item Varying densities, where a single $\varepsilon$ value fails to capture all clusters.
+    \item High-dimensional data, due to distance measures becoming less meaningful.
+\end{itemize}
+
+Selecting $\varepsilon$ and $MinPts$ well is what makes DBSCAN work:
+\begin{itemize}
+    \item Plot the sorted distances to each point's $k$-th nearest neighbor (typically $k = MinPts$);
+    \item The "elbow" in the curve suggests a good $\varepsilon$ value.
+\end{itemize}
+
+\subsubsection{OPTICS (Ordering Points To Identify the Clustering Structure)}
+\textbf{OPTICS} extends DBSCAN by generating a cluster-ordering based on density, capturing information across various parameter settings. This provides a more detailed representation of the dataset's intrinsic clustering structure.
+
+It requires two parameters: $\varepsilon$ (radius) and $MinPts$ (minimum number of points). Key concepts include:
+
+\begin{itemize}
+    \item The \textbf{core distance} of a point $p$ is the minimum radius required for $p$ to be considered a core point. If $p$ is not a core point, its core distance is undefined.
+    \item The \textbf{reachability distance} between points $p$ and $q$ is the maximum of $p$'s core distance and the distance between $p$ and $q$. It is undefined if $p$ is not a core point.
+\end{itemize}
+\begin{equation}
+\text{reachability\_distance}(p, q) = \max(\text{core\_distance}(p), \text{distance}(p, q))
+\end{equation}
+
+\begin{algorithm}
+\caption{OPTICS Clustering Algorithm}
+\label{alg:optics}
+\begin{algorithmic}[1]
+\Require Dataset $X = \{X_1, \ldots, X_n\}$, radius $\varepsilon$, minimum points $MinPts$
+\Ensure Ordered list of points with reachability distances
+\State Initialize reachability distance for all points as undefined and an empty list $L$
+\For{each unprocessed point $p \in X$}
+    \State Get neighbors $N$ of $p$ within distance $\varepsilon$
+    \State Mark $p$ as processed and add it to $L$
+    \If{$|N| \geq MinPts$}
+        \State Initialize priority queue $Q$ for reachability distance updates
+        \State Update reachability distances of $p$'s neighbors and add them to $Q$
+        \While{$Q$ is not empty}
+            \State Extract point $q$ with the minimum reachability distance
+            \State Get neighbors $N'$ of $q$ within distance $\varepsilon$
+            \State Mark $q$ as processed and add it to $L$
+            \If{$|N'| \geq MinPts$}
+                \State Update the reachability distances of $q$'s neighbors
+                \State Add unprocessed neighbors to $Q$
+            \EndIf
+        \EndWhile
+    \EndIf
+\EndFor
+\State \Return Ordered list $L$ with reachability distances
+\end{algorithmic}
+\end{algorithm}
+
+OPTICS produces a reachability plot, where clusters appear as valleys (lower reachability distances). The x-axis represents point order, and the y-axis shows reachability distances. Clusters can be identified by detecting valleys, either through visual inspection, thresholding, or more advanced techniques like knee detection. While OPTICS can function without the $\varepsilon$ parameter, setting it improves computational efficiency by limiting neighborhood queries with spatial indexing.
+\subsubsection{Hierarchical DBSCAN (HDBSCAN)}
+\textbf{HDBSCAN} bypasses the need for the $\varepsilon$ parameter by scanning across all possible values. It identifies clusters of varying densities, is less sensitive to parameter choices, and provides a hierarchical view of the clustering structure.
+
+\paragraph{1. Transform the Space}
+Data is transformed for single linkage clustering using k-nearest neighbors (k-NN) to estimate density (core distance). The mutual reachability distance is introduced to maintain proximity between dense points while separating sparse ones:
+\begin{equation}
+d_{\text{mreach-k}}(x_i, x_j) = \max\{\text{core}_k(x_i), \text{core}_k(x_j), d(x_i, x_j)\}
+\end{equation}
+
+\paragraph{2. Build the Minimum Spanning Tree}
+A graph is constructed with points as vertices, and mutual reachability distances as edge weights. Prim's algorithm is applied to find the minimum spanning tree, connecting points with the lowest-weight edges.
+
+\paragraph{3. Build the Cluster Hierarchy}
+The minimum spanning tree is transformed into a hierarchy by sorting edges by distance and iteratively merging clusters, akin to single linkage hierarchical clustering.
+
+\paragraph{4. Condense the Cluster Tree}
+The hierarchy is simplified using the minimum cluster size parameter. Smaller clusters are marked as noise, and splits occur when both resulting clusters exceed the minimum size. This process is done top-down, recording when points "fall out" and at what distance.
+
+\paragraph{5. Extract Stable Clusters}
+Stable clusters are selected using a stability metric based on $\lambda = 1/\text{distance}$. For each cluster with boundaries $[\lambda_{\text{start}}, \lambda_{\text{end}}]$, stability is calculated as:
+\begin{equation}
+\text{stability}(C) = \sum_{p \in C} (\lambda_p - \lambda_{\text{start}})
+\end{equation}
+Clusters are processed bottom-up, selecting the one with higher stability: either a parent or a child. The final clusters form the flat clustering result.
